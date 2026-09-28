@@ -68,7 +68,16 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.1**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.2**.
+
+## Update auf Version 0.4.2
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Das Icon auf dem Home-Bildschirm ist jetzt das Haus-Symbol von der Login-Seite (`icons/apple-touch-icon.png` – als neuer Ordner mit hochladen).
+- Der Name unter dem Icon heißt jetzt "Family App" statt abgeschnitten "HageneyFamily…".
+
+**Wichtig:** Falls die App auf dem Handy schon auf dem Home-Bildschirm liegt, übernimmt iOS das neue Icon/den neuen Namen nicht automatisch. Dafür einmalig die alte Verknüpfung vom Home-Bildschirm löschen und die Seite danach erneut über Safari → "Zum Home-Bildschirm hinzufügen" neu anlegen.
 
 ## Update auf Version 0.4.1
 
