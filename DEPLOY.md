@@ -1,0 +1,75 @@
+# Hageney Family App – Einrichtung Schritt für Schritt
+
+Diese Anleitung bringt die App das erste Mal online. Rechne mit ca. 20–30 Minuten.
+
+## 1. Supabase-Projekt anlegen
+
+1. Auf https://supabase.com einloggen (bzw. kostenloses Konto anlegen).
+2. "New Project" klicken, Namen vergeben (z.B. `hageney-family-app`), Passwort für die Datenbank setzen (separat notieren) und Region z.B. Frankfurt (eu-central-1) wählen.
+3. Warten, bis das Projekt fertig eingerichtet ist (ca. 1–2 Minuten).
+
+## 2. Datenbank-Struktur einspielen
+
+1. Im Supabase-Projekt links auf "SQL Editor" klicken.
+2. "New query" klicken.
+3. Den kompletten Inhalt der Datei `supabase-schema.sql` hineinkopieren.
+4. Auf "Run" klicken. Es sollte "Success" erscheinen.
+
+## 3. Die zwei Familien-Konten anlegen
+
+1. Links auf "Authentication" → "Users" klicken.
+2. Auf "Add user" → "Create new user" klicken.
+3. E-Mail und ein Passwort für **dich** eintragen. Häkchen bei "Auto Confirm User" setzen. Speichern.
+4. Dasselbe nochmal für **Alice** (eigene E-Mail-Adresse, eigenes Passwort).
+5. Wieder in den "SQL Editor" wechseln, neue Query, folgendes ausführen um die beiden User-IDs zu sehen:
+   ```sql
+   select id, email from auth.users;
+   ```
+6. Für jede Zeile die `id` kopieren und damit folgendes ausführen (Werte anpassen):
+   ```sql
+   insert into profiles (id, display_name) values
+     ('HIER-JAN-UUID-EINFÜGEN', 'Jan'),
+     ('HIER-ALICE-UUID-EINFÜGEN', 'Alice');
+   ```
+
+## 4. App mit Supabase verbinden
+
+1. Im Supabase-Projekt links auf "Project Settings" → "API" klicken.
+2. "Project URL" kopieren → in `config.js` bei `SUPABASE_URL` einfügen.
+3. Den Key unter "anon public" kopieren → in `config.js` bei `SUPABASE_ANON_KEY` einfügen.
+4. Datei speichern.
+
+## 5. Auf GitHub hochladen
+
+Wie bei der Stammtisch-App: neues Repository anlegen (z.B. `hageney-family-app`) und **alle** Dateien/Ordner aus diesem Paket per Drag-and-Drop hochladen – wichtig ist, dass die Ordnerstruktur erhalten bleibt (der `api`-Ordner mit `calendar.js` muss als Ordner mit hochgeladen werden, nicht einzeln).
+
+## 6. Mit Vercel verbinden
+
+1. Auf https://vercel.com einloggen (mit GitHub verbunden, wie gehabt).
+2. "Add New" → "Project" → das eben erstellte GitHub-Repository auswählen.
+3. Vercel erkennt das Projekt automatisch, keine Einstellungen nötig – auf "Deploy" klicken.
+4. Nach ca. 1 Minute ist die App unter einer `*.vercel.app`-Adresse erreichbar.
+
+## 7. Testen
+
+1. Die Vercel-URL öffnen, mit deinem Konto einloggen.
+2. Board: eine Notiz und ein ToDo anlegen, abhaken testen.
+3. Anna: eine Test-Stunde eintragen, wieder löschen (Papierkorb-Icon in der Historie – kommt in einer der nächsten Versionen, aktuell direkt in Supabase löschbar).
+4. Kalender: prüfen, ob Termine aus dem Familienkalender erscheinen. Falls nicht, siehe "Fehlerbehebung" unten.
+5. Auf dem Handy: Seite im Browser öffnen → "Zum Home-Bildschirm hinzufügen", damit es wie eine App aussieht.
+
+## Fehlerbehebung Kalender
+
+Falls unter "Kalender" keine Termine erscheinen:
+- Direkt `https://DEINE-VERCEL-URL/api/calendar` im Browser öffnen – dort sollte JSON mit `events` und `holidays` erscheinen.
+- Steht dort ein Eintrag unter `errors`? Das zeigt, ob der iCloud-Link oder die Ferien-Schnittstelle das Problem ist.
+- Falls der iCloud-Link nicht funktioniert: in der Kalender-App auf dem iPhone prüfen, ob "Öffentlicher Kalender" noch aktiv ist, und den Link ggf. neu kopieren (dann in `api/calendar.js` bei `DEFAULT_CALENDAR_URL` ersetzen und neu hochladen).
+
+## Versionierung
+
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.1.0** (erster Entwurf).
+
+## Offen / nächste Schritte
+
+- Anna-Historie 2017–2026 aus der Excel: kommt als eigener Schritt, ich zeige dir vorher eine Übersicht zur Kontrolle, bevor sie final importiert wird.
+- Henry's Schul-Stundenplan sowie die genauen Uhrzeiten für George (Kindergarten) und Oliver (Tagesmutter) – kannst du direkt in der App unter "Kalender" → "Zeit eintragen" nachtragen, sobald du sie hast.

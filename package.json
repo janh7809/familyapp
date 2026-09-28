@@ -1,0 +1,9 @@
+{
+  "name": "hageney-family-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hageney Family App - Board, Anna & Kalender",
+  "dependencies": {
+    "node-ical": "^0.27.0"
+  }
+}
