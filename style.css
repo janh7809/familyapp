@@ -119,25 +119,45 @@ input, select, textarea, button {
 }
 
 .nav-btn {
+  position: relative;
   flex: 1;
   background: none;
   border: none;
-  padding: 10px 4px 8px 4px;
+  padding: 9px 2px 7px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .nav-btn .nav-icon {
-  font-size: 22px;
+  font-size: 19px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 10px;
 }
 
 .nav-btn.active {
   color: var(--color-primary-dark);
   font-weight: 700;
+}
+
+.nav-btn.active .nav-icon {
+  background: var(--color-primary-light);
+}
+
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--color-primary-dark);
 }
 
 /* ---------- Cards ---------- */
@@ -229,6 +249,15 @@ input, select, textarea, button {
   border-bottom: none;
 }
 
+.board-item.editing {
+  display: block;
+}
+
+.board-item.editing .checkbox,
+.board-item.editing .type-dot {
+  display: none;
+}
+
 .board-item.todo .checkbox {
   flex-shrink: 0;
   width: 22px;
@@ -258,6 +287,68 @@ input, select, textarea, button {
 
 .board-item .content {
   flex: 1;
+  min-width: 0;
+}
+
+.content.editable {
+  cursor: pointer;
+}
+
+.content.editable:active {
+  opacity: 0.7;
+}
+
+.delete-x {
+  flex-shrink: 0;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-x:active {
+  opacity: 0.75;
+}
+
+.btn-small {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  color: var(--color-text);
+  background: #fbfffe;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.edit-grid .field {
+  margin-bottom: 0;
 }
 
 .board-item.done .content .text {
@@ -350,6 +441,8 @@ input, select, textarea, button {
 
 .history-row {
   display: flex;
+  align-items: center;
+  gap: 10px;
   justify-content: space-between;
   padding: 9px 0;
   border-bottom: 1px solid var(--color-border);
@@ -360,9 +453,23 @@ input, select, textarea, button {
   border-bottom: none;
 }
 
+.history-row .hr-editable {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.history-row .hr-editable:active {
+  opacity: 0.7;
+}
+
 .history-row .hr-date {
   color: var(--color-text-muted);
   font-size: 12px;
+}
+
+.history-row .hr-amount {
+  flex-shrink: 0;
 }
 
 .history-row.entry .hr-amount {
@@ -372,6 +479,44 @@ input, select, textarea, button {
 .history-row.payment .hr-amount {
   color: var(--color-success);
   font-weight: 700;
+}
+
+.history-row.editing-row {
+  display: block;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-header h2 {
+  margin: 0;
+}
+
+.year-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  font-size: 14px;
+}
+
+.year-btn {
+  background: var(--color-primary-light);
+  border: none;
+  color: var(--color-primary-dark);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 /* ---------- Kalender ---------- */
@@ -436,6 +581,99 @@ input, select, textarea, button {
   margin-bottom: 14px;
   color: #7a4a2f;
   font-weight: 600;
+}
+
+/* ---------- Kalender: Wochenansicht ---------- */
+
+.week-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.week-label {
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  font-size: 14px;
+}
+
+.week-day {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fbfffe;
+  border: 1px solid var(--color-border);
+}
+
+.week-day.is-today {
+  border-color: var(--color-primary);
+}
+
+.week-day.is-ferien {
+  background: var(--color-accent-peach);
+  border-color: var(--color-accent-peach);
+}
+
+.week-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.week-day-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-primary-dark);
+  text-transform: capitalize;
+}
+
+.week-day.is-ferien .week-day-name {
+  color: #7a4a2f;
+}
+
+.ferien-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a4a2f;
+  text-align: right;
+}
+
+.week-day-empty {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 4px 0;
+}
+
+.week-day .event-row {
+  padding: 4px 0;
+}
+
+/* ---------- Toast (Speicher-Bestätigung) ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--color-primary-dark);
+  color: white;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .legend {

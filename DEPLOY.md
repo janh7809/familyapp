@@ -1,6 +1,7 @@
 # Hageney Family App – Einrichtung Schritt für Schritt
 
 Diese Anleitung bringt die App das erste Mal online. Rechne mit ca. 20–30 Minuten.
+Für spätere Updates (App ist schon online) siehe den Abschnitt **"Update auf Version 0.2.0"** ganz unten – der Ersteinrichtungs-Teil (1–7) ist dann nicht mehr nötig.
 
 ## 1. Supabase-Projekt anlegen
 
@@ -54,7 +55,7 @@ Wie bei der Stammtisch-App: neues Repository anlegen (z.B. `hageney-family-app`)
 
 1. Die Vercel-URL öffnen, mit deinem Konto einloggen.
 2. Board: eine Notiz und ein ToDo anlegen, abhaken testen.
-3. Anna: eine Test-Stunde eintragen, wieder löschen (Papierkorb-Icon in der Historie – kommt in einer der nächsten Versionen, aktuell direkt in Supabase löschbar).
+3. Anna: eine Test-Stunde eintragen, im Verlauf antippen zum Bearbeiten, über das rote X wieder löschen.
 4. Kalender: prüfen, ob Termine aus dem Familienkalender erscheinen. Falls nicht, siehe "Fehlerbehebung" unten.
 5. Auf dem Handy: Seite im Browser öffnen → "Zum Home-Bildschirm hinzufügen", damit es wie eine App aussieht.
 
@@ -67,9 +68,18 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.1.0** (erster Entwurf).
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.2.0**.
+
+## Update auf Version 0.2.0
+
+Diese Version bringt: 6 Reiter (Board, Einkaufsliste, Kalender, Stundenpläne, Anna, Admin) mit deutlicherem aktivem Tab, Klick-zum-Bearbeiten bei Board/Einkaufsliste/Anna, deutlichere Löschen-Buttons, Anna-Verlauf mit Jahresumschalter, Kalender als Wochenansicht mit Ferien-Hervorhebung und Ferien-Liste, Speicher-Bestätigung nach jedem Eintrag, automatisches Neuladen alle 60 Sekunden, sowie einen neuen Admin-Reiter mit den CSV-Exports.
+
+Da die App schon läuft, reichen zwei Schritte:
+
+1. **Neue Tabelle für die Einkaufsliste anlegen:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `migration-v2.sql` einfügen → "Run". Einmalig, zusätzlich zum ursprünglichen `supabase-schema.sql`.
+2. **Alle Dateien wie gewohnt komplett neu auf GitHub hochladen** (überschreibt die alten Dateien 1:1) – Vercel deployt danach automatisch neu.
 
 ## Offen / nächste Schritte
 
-- Anna-Historie 2017–2026 aus der Excel: kommt als eigener Schritt, ich zeige dir vorher eine Übersicht zur Kontrolle, bevor sie final importiert wird.
-- Henry's Schul-Stundenplan sowie die genauen Uhrzeiten für George (Kindergarten) und Oliver (Tagesmutter) – kannst du direkt in der App unter "Kalender" → "Zeit eintragen" nachtragen, sobald du sie hast.
+- Anna-Historie 2017–2026 aus der Excel: fertig aufbereitet als `anna-history-import.sql`, noch nicht eingespielt – erst zur Kontrolle durchsehen (einige Einträge sind markiert, wo das Originaldatum unklar war), dann im SQL Editor ausführen.
+- Henry's Schul-Stundenplan sowie die genauen Uhrzeiten für George (Kindergarten) und Oliver (Tagesmutter) – kannst du direkt in der App unter "Stundenpläne" → "Zeit eintragen" nachtragen, sobald du sie hast.
