@@ -353,14 +353,18 @@ async function loadBoard() {
 
   let html = '';
   if (shared.length > 0) {
-    html += `<div class="board-group-title">Gemeinsam</div><div class="board-list">${shared.map(renderBoardItem).join('')}</div>`;
+    html += `<div class="board-group-box group-shared">
+      <div class="board-group-title"><span class="group-dot"></span>Gemeinsam</div>
+      <div class="board-list">${shared.map(renderBoardItem).join('')}</div>
+    </div>`;
   }
 
   html += '<div class="board-columns">';
-  people.forEach((p) => {
+  people.forEach((p, idx) => {
     const items = data.filter((i) => i.assigned_to === p.id);
-    html += `<div class="board-column">
-      <div class="board-group-title">${escapeHtml(p.display_name)}</div>
+    const groupClass = 'group-person-' + (idx % 3);
+    html += `<div class="board-column board-group-box ${groupClass}">
+      <div class="board-group-title"><span class="group-dot"></span>${escapeHtml(p.display_name)}</div>
       ${items.length > 0
         ? `<div class="board-list">${items.map(renderBoardItem).join('')}</div>`
         : `<div class="empty-hint" style="padding:14px 0">Nichts für ${escapeHtml(p.display_name)}</div>`}
@@ -747,8 +751,8 @@ function initAnna() {
 async function loadAnna() {
   const [settingsRes, entriesRes, paymentsRes] = await Promise.all([
     sb.from('anna_settings').select('*').eq('id', 1).single(),
-    sb.from('anna_entries').select('*').order('work_date', { ascending: false }),
-    sb.from('anna_payments').select('*').order('payment_date', { ascending: false }),
+    sb.from('anna_entries').select('*').order('work_date', { ascending: false }).order('created_at', { ascending: false }),
+    sb.from('anna_payments').select('*').order('payment_date', { ascending: false }).order('created_at', { ascending: false }),
   ]);
 
   if (settingsRes.data) {
@@ -777,8 +781,19 @@ async function loadAnna() {
 
 function annaUnpaidHours() {
   const lastPaid = annaPaymentsCache[0];
-  const cutoff = lastPaid ? lastPaid.payment_date : null;
-  const relevant = cutoff ? annaEntriesCache.filter((e) => e.work_date > cutoff) : annaEntriesCache;
+  if (!lastPaid) {
+    return annaEntriesCache.reduce((sum, e) => sum + Number(e.hours), 0);
+  }
+  const relevant = annaEntriesCache.filter((e) => {
+    if (e.work_date > lastPaid.payment_date) return true;
+    if (e.work_date < lastPaid.payment_date) return false;
+    // Gleicher Tag: die tatsächliche Erfassungs-Reihenfolge entscheidet.
+    // Wurde die Zahlung VOR dem Stundeneintrag erfasst, sind die Stunden
+    // noch nicht mit abgegolten (offen). Wurde der Stundeneintrag VOR
+    // der Zahlung erfasst, war er zum Zeitpunkt der Zahlung bereits
+    // Teil des offenen Betrags und ist damit vergütet.
+    return new Date(e.created_at) > new Date(lastPaid.created_at);
+  });
   return relevant.reduce((sum, e) => sum + Number(e.hours), 0);
 }
 

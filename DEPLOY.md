@@ -68,7 +68,18 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.0**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.2**.
+
+## Update auf Version 0.3.2
+
+Reine Mobil-Optimierung, keine Datenbank-Änderung nötig:
+
+- Die Symbole unten in der Navigation sind jetzt größer und sitzen etwas höher.
+- Alle runden/kleinen Buttons (Löschen-X, Häkchen, Jahres-/Wochenpfeile, Trinkgeld-Stepper) sind größer und leichter zu treffen.
+- In der Board-Übersicht hat jetzt jede Person (Gemeinsam / Alice / Jan) einen eigenen farbigen Rahmen-Kasten, damit auf einen Blick klar ist, wem ein Eintrag zugeordnet ist – nicht mehr nur über die Schrift.
+- Allgemeiner Feinschliff bei Abständen und Kanten für die Handy-Ansicht.
+
+**Nur Schritt: Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.** Kein SQL nötig.
 
 ## Update auf Version 0.3.0
 
