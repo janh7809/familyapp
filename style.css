@@ -468,6 +468,50 @@ input, select, textarea, button {
   color: white;
 }
 
+.priority-toggle-group {
+  gap: 6px;
+}
+
+.priority-toggle-btn {
+  flex: 1;
+  min-height: 42px;
+  padding: 9px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: white;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.priority-toggle-btn.prio-dringend.active {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: white;
+}
+
+.priority-toggle-btn.prio-mittel.active {
+  background: #f0cf6b;
+  border-color: #f0cf6b;
+  color: #5c4813;
+}
+
+.priority-toggle-btn.prio-niedrig.active {
+  background: #c7cdd1;
+  border-color: #c7cdd1;
+  color: #3a4144;
+}
+
+.board-item.prio-low {
+  opacity: 0.72;
+}
+
+.priority-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 2px 0;
+}
+
 .board-group-box {
   border-radius: var(--radius-md);
   border: 2px solid var(--color-border);

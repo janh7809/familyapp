@@ -62,7 +62,12 @@
         <textarea id="board-input" placeholder="Was möchtest du festhalten?"></textarea>
       </div>
       <div class="field">
-        <button type="button" class="urgent-toggle-btn" id="board-urgent-toggle">🔴 Dringend</button>
+        <label>Priorität</label>
+        <div class="toggle-group priority-toggle-group" id="board-priority-toggle">
+          <button type="button" class="priority-toggle-btn prio-dringend" data-priority="dringend">🔴 Dringend</button>
+          <button type="button" class="priority-toggle-btn prio-mittel active" data-priority="mittel">🟡 Mittel</button>
+          <button type="button" class="priority-toggle-btn prio-niedrig" data-priority="niedrig">⚪ Nicht wichtig</button>
+        </div>
       </div>
       <div class="field hidden" id="board-urgent-date-field">
         <label for="board-urgent-date">Fällig am</label>

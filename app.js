@@ -255,7 +255,32 @@ function showToast(message) {
 let boardType = 'note';
 let editingBoardId = null;
 let boardAssignee = null; // null = Beide, sonst profile id
-let boardUrgent = false;
+let boardPriority = 'mittel'; // 'dringend' | 'mittel' | 'niedrig'
+
+const PRIORITY_RANK = { dringend: 0, mittel: 1, niedrig: 2 };
+
+function normalizedPriority(item) {
+  // Abwärtskompatibel für Einträge, die vor der Prioritäts-Migration angelegt wurden
+  // und noch keinen priority-Wert haben.
+  if (item.priority) return item.priority;
+  return item.is_urgent ? 'dringend' : 'mittel';
+}
+
+function sortBoardItems(items) {
+  return [...items].sort((a, b) => {
+    const pa = PRIORITY_RANK[normalizedPriority(a)] ?? 1;
+    const pb = PRIORITY_RANK[normalizedPriority(b)] ?? 1;
+    if (pa !== pb) return pa - pb;
+    if (pa === 0) {
+      // Innerhalb "Dringend": das am nächsten fällige Datum zuerst
+      const da = a.urgent_due_date || '9999-99-99';
+      const db = b.urgent_due_date || '9999-99-99';
+      if (da !== db) return da < db ? -1 : 1;
+    }
+    // sonst: neueste zuerst
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+}
 
 document.querySelectorAll('.type-toggle').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -286,10 +311,13 @@ function renderBoardAssigneeToggle() {
   });
 }
 
-document.getElementById('board-urgent-toggle').addEventListener('click', () => {
-  boardUrgent = !boardUrgent;
-  document.getElementById('board-urgent-toggle').classList.toggle('active', boardUrgent);
-  document.getElementById('board-urgent-date-field').classList.toggle('hidden', !boardUrgent);
+document.querySelectorAll('#board-priority-toggle .priority-toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#board-priority-toggle .priority-toggle-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    boardPriority = btn.dataset.priority;
+    document.getElementById('board-urgent-date-field').classList.toggle('hidden', boardPriority !== 'dringend');
+  });
 });
 
 document.getElementById('board-add-btn').addEventListener('click', async () => {
@@ -298,7 +326,7 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
   if (!content) return;
 
   const dueDateInput = document.getElementById('board-urgent-date');
-  if (boardUrgent && !dueDateInput.value) {
+  if (boardPriority === 'dringend' && !dueDateInput.value) {
     alert('Bitte ein Fälligkeitsdatum für den dringenden Eintrag angeben.');
     return;
   }
@@ -307,8 +335,9 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
     type: boardType,
     content,
     assigned_to: boardAssignee,
-    is_urgent: boardUrgent,
-    urgent_due_date: boardUrgent ? dueDateInput.value : null,
+    priority: boardPriority,
+    is_urgent: boardPriority === 'dringend',
+    urgent_due_date: boardPriority === 'dringend' ? dueDateInput.value : null,
     created_by: currentUser.id,
   });
 
@@ -317,8 +346,9 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
     return;
   }
   input.value = '';
-  boardUrgent = false;
-  document.getElementById('board-urgent-toggle').classList.remove('active');
+  boardPriority = 'mittel';
+  document.querySelectorAll('#board-priority-toggle .priority-toggle-btn').forEach((b) => b.classList.remove('active'));
+  document.querySelector('#board-priority-toggle .prio-mittel').classList.add('active');
   document.getElementById('board-urgent-date-field').classList.add('hidden');
   dueDateInput.value = '';
   showToast('✓ Gespeichert');
@@ -349,7 +379,7 @@ async function loadBoard() {
   empty.classList.add('hidden');
 
   const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
-  const shared = data.filter((i) => !i.assigned_to);
+  const shared = sortBoardItems(data.filter((i) => !i.assigned_to));
 
   // Farbe pro Person bleibt stabil (unabhängig davon, wer eingeloggt ist / in welcher
   // Reihenfolge die Spalten angezeigt werden), basierend auf der alphabetischen Position.
@@ -357,7 +387,7 @@ async function loadBoard() {
   people.forEach((p, idx) => { colorIndexById[p.id] = idx % 3; });
 
   function renderPersonColumn(p) {
-    const items = data.filter((i) => i.assigned_to === p.id);
+    const items = sortBoardItems(data.filter((i) => i.assigned_to === p.id));
     const groupClass = 'group-person-' + colorIndexById[p.id];
     const isOwn = currentUser && p.id === currentUser.id;
     return `<div class="board-column board-group-box ${groupClass}">
@@ -428,11 +458,13 @@ async function loadBoard() {
       btn.classList.add('active');
     });
   });
-  container.querySelectorAll('.urgent-toggle-btn[data-edit-id]').forEach((btn) => {
+  container.querySelectorAll('.priority-toggle-edit .priority-toggle-btn[data-edit-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      btn.classList.toggle('active');
+      const group = btn.closest('.priority-toggle-edit');
+      group.querySelectorAll('.priority-toggle-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
       const dateField = document.getElementById('board-edit-due-field-' + btn.dataset.editId);
-      if (dateField) dateField.classList.toggle('hidden', !btn.classList.contains('active'));
+      if (dateField) dateField.classList.toggle('hidden', btn.dataset.priority !== 'dringend');
     });
   });
 }
@@ -475,6 +507,12 @@ function renderBoardItem(item) {
     const assigneeButtons = `<button type="button" class="edit-assignee-btn ${!item.assigned_to ? 'active' : ''}" data-assignee="">Beide</button>` +
       people.map((p) => `<button type="button" class="edit-assignee-btn ${item.assigned_to === p.id ? 'active' : ''}" data-assignee="${p.id}">${escapeHtml(p.display_name)}</button>`).join('');
 
+    const editPriority = normalizedPriority(item);
+    const priorityButtons = `
+      <button type="button" class="priority-toggle-btn prio-dringend ${editPriority === 'dringend' ? 'active' : ''}" data-edit-id="${item.id}" data-priority="dringend">🔴 Dringend</button>
+      <button type="button" class="priority-toggle-btn prio-mittel ${editPriority === 'mittel' ? 'active' : ''}" data-edit-id="${item.id}" data-priority="mittel">🟡 Mittel</button>
+      <button type="button" class="priority-toggle-btn prio-niedrig ${editPriority === 'niedrig' ? 'active' : ''}" data-edit-id="${item.id}" data-priority="niedrig">⚪ Nicht wichtig</button>`;
+
     return `
       <div class="board-item ${item.type} editing">
         ${marker}
@@ -486,9 +524,10 @@ function renderBoardItem(item) {
             <div class="toggle-group assignee-toggle-edit">${assigneeButtons}</div>
           </div>
           <div class="field">
-            <button type="button" class="urgent-toggle-btn ${item.is_urgent ? 'active' : ''}" data-edit-id="${item.id}">🔴 Dringend</button>
+            <label>Priorität</label>
+            <div class="toggle-group priority-toggle-group priority-toggle-edit" data-edit-id="${item.id}">${priorityButtons}</div>
           </div>
-          <div class="field ${item.is_urgent ? '' : 'hidden'}" id="board-edit-due-field-${item.id}">
+          <div class="field ${editPriority === 'dringend' ? '' : 'hidden'}" id="board-edit-due-field-${item.id}">
             <label>Fällig am</label>
             <input type="date" id="board-edit-due-${item.id}" value="${item.urgent_due_date || ''}" />
           </div>
@@ -500,22 +539,25 @@ function renderBoardItem(item) {
       </div>`;
   }
 
+  const priority = normalizedPriority(item);
   const doneClass = item.is_done ? 'done' : '';
-  const urgentClass = item.is_urgent ? 'urgent' : '';
+  const priorityClass = priority === 'dringend' ? 'urgent' : (priority === 'niedrig' ? 'prio-low' : '');
   const creator = displayNameFor(item.created_by);
   const meta = isTodo && item.is_done
     ? `erledigt von ${displayNameFor(item.done_by)} · ${formatDateTimeDE(item.done_at)}`
     : `von ${creator} · ${formatDateTimeDE(item.created_at)}`;
 
-  const urgentMeta = item.is_urgent && item.urgent_due_date ? renderUrgentDueMeta(item.urgent_due_date) : '';
-  const styleAttr = item.is_urgent && item.urgent_due_date ? ` style="background:${urgentBackgroundColor(item.urgent_due_date)}"` : '';
+  const urgentMeta = priority === 'dringend' && item.urgent_due_date ? renderUrgentDueMeta(item.urgent_due_date) : '';
+  const lowMeta = priority === 'niedrig' ? `<div class="priority-hint">⚪ Nicht wichtig</div>` : '';
+  const styleAttr = priority === 'dringend' && item.urgent_due_date ? ` style="background:${urgentBackgroundColor(item.urgent_due_date)}"` : '';
 
   return `
-    <div class="board-item ${item.type} ${doneClass} ${urgentClass}"${styleAttr}>
+    <div class="board-item ${item.type} ${doneClass} ${priorityClass}"${styleAttr}>
       ${marker}
       <div class="content editable" data-id="${item.id}">
         <div class="text">${escapeHtml(item.content)}</div>
         ${urgentMeta}
+        ${lowMeta}
         <div class="meta">${meta}</div>
       </div>
       <div class="delete-x" data-id="${item.id}" data-kind="board">✕</div>
@@ -551,8 +593,9 @@ async function saveBoardEdit(id) {
   const activeAssigneeBtn = document.querySelector('.assignee-toggle-edit .edit-assignee-btn.active');
   const assigned_to = activeAssigneeBtn ? (activeAssigneeBtn.dataset.assignee || null) : null;
 
-  const urgentBtn = document.querySelector('.urgent-toggle-btn[data-edit-id="' + id + '"]');
-  const is_urgent = urgentBtn ? urgentBtn.classList.contains('active') : false;
+  const activePriorityBtn = document.querySelector('.priority-toggle-edit[data-edit-id="' + id + '"] .priority-toggle-btn.active');
+  const priority = activePriorityBtn ? activePriorityBtn.dataset.priority : 'mittel';
+  const is_urgent = priority === 'dringend';
   const dueInput = document.getElementById('board-edit-due-' + id);
   const urgent_due_date = is_urgent ? (dueInput ? dueInput.value : '') : null;
 
@@ -561,7 +604,7 @@ async function saveBoardEdit(id) {
     return;
   }
 
-  const { error } = await sb.from('board_items').update({ content, assigned_to, is_urgent, urgent_due_date }).eq('id', id);
+  const { error } = await sb.from('board_items').update({ content, assigned_to, priority, is_urgent, urgent_due_date }).eq('id', id);
   if (error) {
     alert('Fehler: ' + error.message);
     return;
@@ -574,14 +617,14 @@ async function saveBoardEdit(id) {
 document.getElementById('board-export-btn').addEventListener('click', async () => {
   const { data, error } = await sb.from('board_items').select('*').order('created_at', { ascending: true });
   if (error) { alert('Fehler: ' + error.message); return; }
-  const rows = [['Typ', 'Inhalt', 'Für', 'Dringend', 'Fällig am', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
+  const priorityLabels = { dringend: 'Dringend', mittel: 'Mittel', niedrig: 'Nicht wichtig' };
+  const rows = [['Typ', 'Inhalt', 'Für', 'Priorität', 'Fällig am', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
   data.forEach((i) => rows.push([
     i.type === 'todo' ? 'ToDo' : 'Notiz',
     i.content,
     i.assigned_to ? displayNameFor(i.assigned_to) : 'Beide',
-    i.is_urgent ? 'Ja' : 'Nein',
+    priorityLabels[normalizedPriority(i)] || 'Mittel',
     i.urgent_due_date ? formatDateDE(i.urgent_due_date) : '',
-    i.content,
     displayNameFor(i.created_by),
     formatDateTimeDE(i.created_at),
     i.is_done ? 'Ja' : 'Nein',

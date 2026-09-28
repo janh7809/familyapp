@@ -68,7 +68,14 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.3**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.0**.
+
+## Update auf Version 0.4.0
+
+Board-Einträge haben jetzt statt nur "Dringend ja/nein" eine **3-stufige Priorität**: 🔴 Dringend / 🟡 Mittel / ⚪ Nicht wichtig. Die Übersicht sortiert jede Spalte automatisch danach – Dringend oben, Nicht wichtig unten (nicht mehr nur nach Erstelldatum). Ein Fälligkeitsdatum ist weiterhin nur bei "Dringend" Pflicht. "Mittel" ist die Standardauswahl für neue Einträge.
+
+1. **Neue Spalte für die Priorität anlegen:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `migration-v4.sql` einfügen → "Run". Einmalig, zusätzlich zu den bisherigen Migrationen. Bestehende dringende Einträge werden dabei automatisch auf "Dringend" gesetzt, alle anderen auf "Mittel".
+2. **Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
 
 ## Update auf Version 0.3.3
 
