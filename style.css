@@ -522,6 +522,13 @@ input, select, textarea, button {
 .group-person-1 .group-dot { background: #c2632f; }
 .group-person-2 .group-dot { background: #9c7f1f; }
 
+.own-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: none;
+}
+
 .board-columns {
   display: flex;
   flex-wrap: wrap;
@@ -623,6 +630,36 @@ input, select, textarea, button {
 
 .history-row .hr-amount {
   flex-shrink: 0;
+}
+
+.history-row.is-current-period {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  margin: 2px 0;
+  border-bottom: none;
+  font-weight: 700;
+}
+
+.today-marker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.today-marker::before,
+.today-marker::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-primary);
+  opacity: 0.45;
 }
 
 .history-row.entry .hr-amount {
@@ -752,6 +789,16 @@ input, select, textarea, button {
 }
 
 /* ---------- Anna: Zahlung eintragen ---------- */
+
+.card-hours-entry {
+  border: 2px solid var(--color-accent-lavender);
+  background: #faf8ff;
+}
+
+.card-payment-entry {
+  border: 2px solid var(--color-accent-peach);
+  background: #fffaf5;
+}
 
 .payment-due-box {
   background: var(--color-primary-light);

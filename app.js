@@ -351,25 +351,41 @@ async function loadBoard() {
   const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
   const shared = data.filter((i) => !i.assigned_to);
 
-  let html = '';
-  if (shared.length > 0) {
-    html += `<div class="board-group-box group-shared">
-      <div class="board-group-title"><span class="group-dot"></span>Gemeinsam</div>
-      <div class="board-list">${shared.map(renderBoardItem).join('')}</div>
-    </div>`;
-  }
+  // Farbe pro Person bleibt stabil (unabhängig davon, wer eingeloggt ist / in welcher
+  // Reihenfolge die Spalten angezeigt werden), basierend auf der alphabetischen Position.
+  const colorIndexById = {};
+  people.forEach((p, idx) => { colorIndexById[p.id] = idx % 3; });
 
-  html += '<div class="board-columns">';
-  people.forEach((p, idx) => {
+  function renderPersonColumn(p) {
     const items = data.filter((i) => i.assigned_to === p.id);
-    const groupClass = 'group-person-' + (idx % 3);
-    html += `<div class="board-column board-group-box ${groupClass}">
-      <div class="board-group-title"><span class="group-dot"></span>${escapeHtml(p.display_name)}</div>
+    const groupClass = 'group-person-' + colorIndexById[p.id];
+    const isOwn = currentUser && p.id === currentUser.id;
+    return `<div class="board-column board-group-box ${groupClass}">
+      <div class="board-group-title"><span class="group-dot"></span>${escapeHtml(p.display_name)}${isOwn ? ' <span class="own-tag">(Du)</span>' : ''}</div>
       ${items.length > 0
         ? `<div class="board-list">${items.map(renderBoardItem).join('')}</div>`
         : `<div class="empty-hint" style="padding:14px 0">Nichts für ${escapeHtml(p.display_name)}</div>`}
     </div>`;
-  });
+  }
+
+  function renderSharedBox() {
+    return `<div class="board-group-box group-shared">
+      <div class="board-group-title"><span class="group-dot"></span>Gemeinsam</div>
+      ${shared.length > 0
+        ? `<div class="board-list">${shared.map(renderBoardItem).join('')}</div>`
+        : `<div class="empty-hint" style="padding:14px 0">Keine gemeinsamen Einträge</div>`}
+    </div>`;
+  }
+
+  // Reihenfolge je nach eingeloggter Person: eigene Liste zuerst, dann Gemeinsam,
+  // dann die Liste der anderen Person(en).
+  const ownProfile = currentUser ? people.find((p) => p.id === currentUser.id) : null;
+  const otherPeople = ownProfile ? people.filter((p) => p.id !== ownProfile.id) : people;
+
+  let html = '<div class="board-columns">';
+  if (ownProfile) html += renderPersonColumn(ownProfile);
+  html += renderSharedBox();
+  otherPeople.forEach((p) => { html += renderPersonColumn(p); });
   html += '</div>';
 
   container.innerHTML = html;
@@ -1179,10 +1195,27 @@ function renderKalenderWeek() {
   container.innerHTML = html;
 }
 
+function insertTodayMarker(rows, today) {
+  // rows: [{ sortKey: Date, spansToday: bool, html: string }], sorted ascending by sortKey
+  const markerHtml = '<div class="today-marker"><span>Heute</span></div>';
+  let html = '';
+  let inserted = false;
+  rows.forEach((r) => {
+    if (!inserted && !r.spansToday && r.sortKey >= today) {
+      html += markerHtml;
+      inserted = true;
+    }
+    html += r.html;
+  });
+  if (!inserted) html += markerHtml;
+  return html;
+}
+
 function renderFerienList() {
   const container = document.getElementById('ferien-list');
   const empty = document.getElementById('ferien-empty');
   const currentYear = new Date().getFullYear();
+  const today = startOfDay(new Date());
 
   const list = kalenderHolidaysCache
     .filter((h) => h.startD.getFullYear() === currentYear || h.endD.getFullYear() === currentYear)
@@ -1195,17 +1228,26 @@ function renderFerienList() {
   }
   empty.classList.add('hidden');
 
-  container.innerHTML = list.map((h) => `
-    <div class="history-row">
-      <div>${escapeHtml(h.name)}</div>
-      <div class="hr-date">${formatDateDE(h.startD)} – ${formatDateDE(h.endD)}</div>
-    </div>`).join('');
+  const rows = list.map((h) => {
+    const isCurrent = today >= h.startD && today <= h.endD;
+    return {
+      sortKey: h.startD,
+      spansToday: isCurrent,
+      html: `<div class="history-row ${isCurrent ? 'is-current-period' : ''}">
+        <div>${isCurrent ? '📍 ' : ''}${escapeHtml(h.name)}</div>
+        <div class="hr-date">${formatDateDE(h.startD)} – ${formatDateDE(h.endD)}</div>
+      </div>`,
+    };
+  });
+
+  container.innerHTML = insertTodayMarker(rows, today);
 }
 
 function renderFeiertageList() {
   const container = document.getElementById('feiertage-list');
   const empty = document.getElementById('feiertage-empty');
   const currentYear = new Date().getFullYear();
+  const today = startOfDay(new Date());
 
   const list = kalenderFeiertageCache
     .filter((f) => f.dateD.getFullYear() === currentYear)
@@ -1218,11 +1260,19 @@ function renderFeiertageList() {
   }
   empty.classList.add('hidden');
 
-  container.innerHTML = list.map((f) => `
-    <div class="history-row">
-      <div>${escapeHtml(f.name)}</div>
-      <div class="hr-date">${formatDateDE(f.dateD)}</div>
-    </div>`).join('');
+  const rows = list.map((f) => {
+    const isToday = f.dateD.getTime() === today.getTime();
+    return {
+      sortKey: f.dateD,
+      spansToday: isToday,
+      html: `<div class="history-row ${isToday ? 'is-current-period' : ''}">
+        <div>${isToday ? '📍 ' : ''}${escapeHtml(f.name)}</div>
+        <div class="hr-date">${formatDateDE(f.dateD)}</div>
+      </div>`,
+    };
+  });
+
+  container.innerHTML = insertTodayMarker(rows, today);
 }
 
 document.getElementById('kalender-week-prev').addEventListener('click', () => {

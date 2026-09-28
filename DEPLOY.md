@@ -68,7 +68,17 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.2**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.3**.
+
+## Update auf Version 0.3.3
+
+Keine Datenbank-Änderung nötig:
+
+- Bei Anna sind "Stunden eintragen" (violetter Rahmen) und "Zahlung eintragen" (oranger Rahmen) jetzt farblich unterschiedlich umrahmt, damit die beiden Blöcke auf einen Blick auseinanderzuhalten sind.
+- Im Board erscheint jetzt zuerst die eigene Liste der gerade eingeloggten Person (mit "(Du)"-Kennzeichnung), danach "Gemeinsam", danach die Liste der anderen Person.
+- Bei Ferien und Feiertagen ist jetzt eine "HEUTE"-Trennlinie in der Jahresliste eingeblendet, die zeigt, wo man sich gerade im Jahr befindet; eine gerade laufende Ferienzeit ist zusätzlich mit 📍 hervorgehoben.
+
+**Nur Schritt: Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
 
 ## Update auf Version 0.3.2
 
