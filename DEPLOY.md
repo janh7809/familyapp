@@ -68,7 +68,17 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.0**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.1**.
+
+## Update auf Version 0.4.1
+
+1. **Neue Spalte für die manuelle Reihenfolge anlegen:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `migration-v5.sql` einfügen → "Run". Einmalig, zusätzlich zu den bisherigen Migrationen.
+2. **Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
+
+Was neu ist:
+- Board-Einträge lassen sich jetzt per Pfeil-Buttons (▲▼) innerhalb ihrer Prioritäts-Gruppe manuell nach oben/unten verschieben.
+- Die Reiter-Leiste unten ist jetzt oben abgerundet und hat etwas Abstand zu den Bildschirmrändern, damit auf Handys mit abgerundeten Ecken nichts mehr abgeschnitten wirkt.
+- Die rote Hervorhebung bei dringenden Einträgen ist jetzt gedämpfter (weniger grelles Rot) und die Schrift darauf deutlich besser lesbar.
 
 ## Update auf Version 0.4.0
 

@@ -139,7 +139,11 @@ input, select, textarea, button {
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
   z-index: 20;
-  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 18px 18px 0 0;
+  padding-left: max(6px, env(safe-area-inset-left));
+  padding-right: max(6px, env(safe-area-inset-right));
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  overflow: hidden;
 }
 
 .nav-btn {
@@ -155,6 +159,7 @@ input, select, textarea, button {
   color: var(--color-text-muted);
   font-size: 11px;
   min-height: 56px;
+  border-radius: 14px 14px 0 0;
 }
 
 .nav-btn .nav-icon {
@@ -347,6 +352,37 @@ input, select, textarea, button {
 
 .delete-x:active {
   opacity: 0.75;
+}
+
+.reorder-btns {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reorder-btn {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reorder-btn:active:not(:disabled) {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.reorder-btn:disabled {
+  opacity: 0.25;
 }
 
 .btn-small {
@@ -591,10 +627,18 @@ input, select, textarea, button {
   margin: 4px 0;
 }
 
+.board-item.urgent .text {
+  color: #5a1a10;
+}
+
+.board-item.urgent .meta {
+  color: #7a3a2e;
+}
+
 .urgent-due {
   font-size: 12px;
   font-weight: 700;
-  color: #a3392a;
+  color: #6b1f14;
   margin: 2px 0;
 }
 

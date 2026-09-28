@@ -256,6 +256,7 @@ let boardType = 'note';
 let editingBoardId = null;
 let boardAssignee = null; // null = Beide, sonst profile id
 let boardPriority = 'mittel'; // 'dringend' | 'mittel' | 'niedrig'
+let boardItemsCache = [];
 
 const PRIORITY_RANK = { dringend: 0, mittel: 1, niedrig: 2 };
 
@@ -266,20 +267,60 @@ function normalizedPriority(item) {
   return item.is_urgent ? 'dringend' : 'mittel';
 }
 
+function boardSortValue(item) {
+  // Manuell verschobene Einträge haben einen echten sort_order-Wert;
+  // alle anderen fallen auf ihr Erstelldatum zurück (neueste zuerst).
+  return typeof item.sort_order === 'number' ? item.sort_order : new Date(item.created_at).getTime();
+}
+
 function sortBoardItems(items) {
   return [...items].sort((a, b) => {
     const pa = PRIORITY_RANK[normalizedPriority(a)] ?? 1;
     const pb = PRIORITY_RANK[normalizedPriority(b)] ?? 1;
     if (pa !== pb) return pa - pb;
-    if (pa === 0) {
-      // Innerhalb "Dringend": das am nächsten fällige Datum zuerst
-      const da = a.urgent_due_date || '9999-99-99';
-      const db = b.urgent_due_date || '9999-99-99';
-      if (da !== db) return da < db ? -1 : 1;
-    }
-    // sonst: neueste zuerst
-    return new Date(b.created_at) - new Date(a.created_at);
+    return boardSortValue(b) - boardSortValue(a);
   });
+}
+
+function boardGroupKey(item) {
+  return (item.assigned_to || 'shared') + '::' + normalizedPriority(item);
+}
+
+// Fügt jedem Eintrag mit, ob er innerhalb seiner Prioritäts-Gruppe (gleiche
+// Person/"Gemeinsam" UND gleiche Priorität) ganz oben bzw. ganz unten steht,
+// damit die Hoch/Runter-Pfeile am Rand der jeweiligen Gruppe deaktiviert werden.
+function withTierBoundaries(sortedItems) {
+  return sortedItems.map((item, idx) => {
+    const key = boardGroupKey(item);
+    const isFirst = idx === 0 || boardGroupKey(sortedItems[idx - 1]) !== key;
+    const isLast = idx === sortedItems.length - 1 || boardGroupKey(sortedItems[idx + 1]) !== key;
+    return { item, isFirst, isLast };
+  });
+}
+
+async function moveBoardItem(id, direction) {
+  const item = boardItemsCache.find((i) => i.id === id);
+  if (!item) return;
+  const key = boardGroupKey(item);
+  const group = sortBoardItems(boardItemsCache.filter((i) => boardGroupKey(i) === key));
+  const idx = group.findIndex((i) => i.id === id);
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= group.length) return;
+  const other = group[swapIdx];
+
+  const soA = boardSortValue(item);
+  const soB = boardSortValue(other);
+
+  const { error } = await Promise.all([
+    sb.from('board_items').update({ sort_order: soB }).eq('id', item.id),
+    sb.from('board_items').update({ sort_order: soA }).eq('id', other.id),
+  ]).then((results) => ({ error: results.find((r) => r.error)?.error || null }));
+
+  if (error) {
+    alert('Fehler beim Verschieben: ' + error.message);
+    return;
+  }
+  loadBoard();
 }
 
 document.querySelectorAll('.type-toggle').forEach((btn) => {
@@ -377,6 +418,7 @@ async function loadBoard() {
     return;
   }
   empty.classList.add('hidden');
+  boardItemsCache = data;
 
   const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
   const shared = sortBoardItems(data.filter((i) => !i.assigned_to));
@@ -393,7 +435,7 @@ async function loadBoard() {
     return `<div class="board-column board-group-box ${groupClass}">
       <div class="board-group-title"><span class="group-dot"></span>${escapeHtml(p.display_name)}${isOwn ? ' <span class="own-tag">(Du)</span>' : ''}</div>
       ${items.length > 0
-        ? `<div class="board-list">${items.map(renderBoardItem).join('')}</div>`
+        ? `<div class="board-list">${withTierBoundaries(items).map(({ item, isFirst, isLast }) => renderBoardItem(item, isFirst, isLast)).join('')}</div>`
         : `<div class="empty-hint" style="padding:14px 0">Nichts für ${escapeHtml(p.display_name)}</div>`}
     </div>`;
   }
@@ -402,7 +444,7 @@ async function loadBoard() {
     return `<div class="board-group-box group-shared">
       <div class="board-group-title"><span class="group-dot"></span>Gemeinsam</div>
       ${shared.length > 0
-        ? `<div class="board-list">${shared.map(renderBoardItem).join('')}</div>`
+        ? `<div class="board-list">${withTierBoundaries(shared).map(({ item, isFirst, isLast }) => renderBoardItem(item, isFirst, isLast)).join('')}</div>`
         : `<div class="empty-hint" style="padding:14px 0">Keine gemeinsamen Einträge</div>`}
     </div>`;
   }
@@ -430,6 +472,13 @@ async function loadBoard() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteBoardItem(btn.dataset.id);
+    });
+  });
+  container.querySelectorAll('.reorder-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (btn.disabled) return;
+      moveBoardItem(btn.dataset.id, btn.dataset.dir);
     });
   });
   container.querySelectorAll('.content.editable').forEach((el) => {
@@ -476,8 +525,8 @@ function urgentBackgroundColor(dueDateStr) {
   const maxWindow = 14;
   const clamped = Math.max(0, Math.min(maxWindow, daysLeft));
   const ratio = 1 - clamped / maxWindow;
-  const light = [255, 224, 220];
-  const strong = [214, 68, 58];
+  const light = [255, 232, 228];
+  const strong = [237, 141, 126];
   const r = Math.round(light[0] + (strong[0] - light[0]) * ratio);
   const g = Math.round(light[1] + (strong[1] - light[1]) * ratio);
   const b = Math.round(light[2] + (strong[2] - light[2]) * ratio);
@@ -496,7 +545,7 @@ function renderUrgentDueMeta(dueDateStr) {
   return `<div class="urgent-due">${text}</div>`;
 }
 
-function renderBoardItem(item) {
+function renderBoardItem(item, isFirst, isLast) {
   const isTodo = item.type === 'todo';
   const marker = isTodo
     ? `<div class="checkbox" data-id="${item.id}" data-done="${item.is_done}">${item.is_done ? '✓' : ''}</div>`
@@ -559,6 +608,10 @@ function renderBoardItem(item) {
         ${urgentMeta}
         ${lowMeta}
         <div class="meta">${meta}</div>
+      </div>
+      <div class="reorder-btns">
+        <button type="button" class="reorder-btn" data-id="${item.id}" data-dir="up" title="Nach oben" ${isFirst ? 'disabled' : ''}>▲</button>
+        <button type="button" class="reorder-btn" data-id="${item.id}" data-dir="down" title="Nach unten" ${isLast ? 'disabled' : ''}>▼</button>
       </div>
       <div class="delete-x" data-id="${item.id}" data-kind="board">✕</div>
     </div>`;
