@@ -3,7 +3,7 @@
 // ============================================================
 
 const cfg = window.APP_CONFIG;
-const supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
 
 let currentUser = null;   // { id, email }
 let currentProfile = null; // { id, display_name }
@@ -17,14 +17,14 @@ document.getElementById('app-version').textContent = 'Version ' + cfg.APP_VERSIO
 // ------------------------------------------------------------
 
 async function init() {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await sb.auth.getSession();
   if (data.session) {
     await onLoggedIn(data.session.user);
   } else {
     showLogin();
   }
 
-  supabase.auth.onAuthStateChange((event, session) => {
+  sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       showLogin();
     }
@@ -59,7 +59,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   errorEl.classList.add('hidden');
   document.getElementById('login-submit').textContent = 'Anmelden...';
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
   document.getElementById('login-submit').textContent = 'Anmelden';
 
@@ -72,11 +72,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
 });
 
 async function loadAllProfiles() {
-  const { data, error } = await supabase.from('profiles').select('id, display_name');
+  const { data, error } = await sb.from('profiles').select('id, display_name');
   if (!error && data) {
     profilesById = {};
     data.forEach((p) => (profilesById[p.id] = p));
@@ -110,7 +110,7 @@ document.querySelectorAll('.nav-btn').forEach((btn) => {
 // ------------------------------------------------------------
 
 function subscribeRealtime() {
-  supabase
+  sb
     .channel('family-app-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'board_items' }, loadBoard)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'anna_entries' }, loadAnna)
@@ -187,7 +187,7 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
   const content = input.value.trim();
   if (!content) return;
 
-  const { error } = await supabase.from('board_items').insert({
+  const { error } = await sb.from('board_items').insert({
     type: boardType,
     content,
     created_by: currentUser.id,
@@ -202,7 +202,7 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
 });
 
 async function loadBoard() {
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('board_items')
     .select('*')
     .order('created_at', { ascending: false });
@@ -262,20 +262,20 @@ async function toggleTodo(id, currentlyDone) {
     ? { is_done: true, done_by: currentUser.id, done_at: new Date().toISOString() }
     : { is_done: false, done_by: null, done_at: null };
 
-  const { error } = await supabase.from('board_items').update(patch).eq('id', id);
+  const { error } = await sb.from('board_items').update(patch).eq('id', id);
   if (error) alert('Fehler: ' + error.message);
   loadBoard();
 }
 
 async function deleteBoardItem(id) {
   if (!confirm('Diesen Eintrag wirklich löschen?')) return;
-  const { error } = await supabase.from('board_items').delete().eq('id', id);
+  const { error } = await sb.from('board_items').delete().eq('id', id);
   if (error) alert('Fehler: ' + error.message);
   loadBoard();
 }
 
 document.getElementById('board-export-btn').addEventListener('click', async () => {
-  const { data, error } = await supabase.from('board_items').select('*').order('created_at', { ascending: true });
+  const { data, error } = await sb.from('board_items').select('*').order('created_at', { ascending: true });
   if (error) { alert('Fehler: ' + error.message); return; }
   const rows = [['Typ', 'Inhalt', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
   data.forEach((i) => rows.push([
@@ -304,9 +304,9 @@ function initAnna() {
 
 async function loadAnna() {
   const [settingsRes, entriesRes, paymentsRes] = await Promise.all([
-    supabase.from('anna_settings').select('*').eq('id', 1).single(),
-    supabase.from('anna_entries').select('*').order('work_date', { ascending: false }),
-    supabase.from('anna_payments').select('*').order('payment_date', { ascending: false }),
+    sb.from('anna_settings').select('*').eq('id', 1).single(),
+    sb.from('anna_entries').select('*').order('work_date', { ascending: false }),
+    sb.from('anna_payments').select('*').order('payment_date', { ascending: false }),
   ]);
 
   if (settingsRes.data) {
@@ -381,13 +381,13 @@ document.getElementById('anna-hours-submit').addEventListener('click', async () 
     return;
   }
 
-  const { error } = await supabase.from('anna_entries').insert({
+  const { error } = await sb.from('anna_entries').insert({
     work_date, hours, rate, note, created_by: currentUser.id,
   });
   if (error) { alert('Fehler: ' + error.message); return; }
 
   if (rate !== annaCurrentRate) {
-    await supabase.from('anna_settings').update({ current_rate: rate, updated_at: new Date().toISOString() }).eq('id', 1);
+    await sb.from('anna_settings').update({ current_rate: rate, updated_at: new Date().toISOString() }).eq('id', 1);
   }
 
   document.getElementById('anna-hours-value').value = '';
@@ -407,7 +407,7 @@ document.getElementById('anna-pay-submit').addEventListener('click', async () =>
     return;
   }
 
-  const { error } = await supabase.from('anna_payments').insert({
+  const { error } = await sb.from('anna_payments').insert({
     payment_date, amount, tip, note, created_by: currentUser.id,
   });
   if (error) { alert('Fehler: ' + error.message); return; }
@@ -421,8 +421,8 @@ document.getElementById('anna-pay-submit').addEventListener('click', async () =>
 
 document.getElementById('anna-export-btn').addEventListener('click', async () => {
   const [entriesRes, paymentsRes] = await Promise.all([
-    supabase.from('anna_entries').select('*').order('work_date', { ascending: true }),
-    supabase.from('anna_payments').select('*').order('payment_date', { ascending: true }),
+    sb.from('anna_entries').select('*').order('work_date', { ascending: true }),
+    sb.from('anna_payments').select('*').order('payment_date', { ascending: true }),
   ]);
   const rows = [['Art', 'Datum', 'Stunden', 'Satz', 'Betrag', 'Trinkgeld', 'Notiz', 'Erfasst von']];
   (entriesRes.data || []).forEach((e) => rows.push([
@@ -451,7 +451,7 @@ function initKalender() {
 async function loadKalender() {
   const [calRes, kidsRes] = await Promise.all([
     fetch('/api/calendar').then((r) => r.json()).catch((e) => ({ events: [], holidays: [], errors: [String(e)] })),
-    supabase.from('kids_schedule').select('*'),
+    sb.from('kids_schedule').select('*'),
   ]);
 
   kidsScheduleCache = kidsRes.data || [];
@@ -575,7 +575,7 @@ function renderKidsScheduleList() {
 
   container.querySelectorAll('.delete-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      await supabase.from('kids_schedule').delete().eq('id', btn.dataset.id);
+      await sb.from('kids_schedule').delete().eq('id', btn.dataset.id);
       loadKalender();
     });
   });
@@ -590,7 +590,7 @@ document.getElementById('kids-schedule-submit').addEventListener('click', async 
 
   if (!label) { alert('Bitte eine Bezeichnung eintragen.'); return; }
 
-  const { error } = await supabase.from('kids_schedule').insert({
+  const { error } = await sb.from('kids_schedule').insert({
     child_name, weekday, start_time, end_time, label,
   });
   if (error) { alert('Fehler: ' + error.message); return; }
