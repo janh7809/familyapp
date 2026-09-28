@@ -420,6 +420,82 @@ input, select, textarea, button {
   border-color: var(--color-primary);
 }
 
+/* ---------- Board: Zuweisung, Dringlichkeit, Spalten ---------- */
+
+.assignee-toggle-btn,
+.edit-assignee-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: white;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.assignee-toggle-btn.active,
+.edit-assignee-btn.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.assignee-toggle-edit {
+  margin-top: 4px;
+}
+
+.urgent-toggle-btn {
+  border: 1px solid var(--color-danger);
+  background: white;
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  width: 100%;
+}
+
+.urgent-toggle-btn.active {
+  background: var(--color-danger);
+  color: white;
+}
+
+.board-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin: 14px 0 4px 0;
+}
+
+.board-group-title:first-child {
+  margin-top: 0;
+}
+
+.board-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.board-column {
+  flex: 1;
+  min-width: 240px;
+}
+
+.board-item.urgent {
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 4px 0;
+}
+
+.urgent-due {
+  font-size: 12px;
+  font-weight: 700;
+  color: #a3392a;
+  margin: 2px 0;
+}
+
 /* ---------- Anna ---------- */
 
 .balance-hero {
@@ -624,6 +700,109 @@ input, select, textarea, button {
   font-weight: 600;
 }
 
+/* ---------- Anna: Zahlung eintragen ---------- */
+
+.payment-due-box {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.payment-due-label {
+  font-size: 12px;
+  color: var(--color-primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.payment-due-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-top: 2px;
+}
+
+.tip-stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tip-step-btn {
+  flex-shrink: 0;
+  border: none;
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tip-step-btn:active {
+  background: var(--color-primary-dark);
+}
+
+.tip-step-value {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.rate-preview {
+  background: #fbfffe;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  text-align: center;
+  margin: 14px 0;
+}
+
+.rate-preview-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.rate-preview-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-top: 2px;
+}
+
+.rate-preview-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.tip-year-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-accent-yellow);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.tip-year-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a6a1f;
+}
+
+.tip-year-amount {
+  font-size: 17px;
+  font-weight: 800;
+  color: #7a6a1f;
+}
+
 /* ---------- Kalender: Wochenansicht ---------- */
 
 .week-header {
@@ -656,12 +835,18 @@ input, select, textarea, button {
   border-color: var(--color-accent-peach);
 }
 
+.week-day.is-feiertag {
+  background: #ffd6d0;
+  border-color: #ffd6d0;
+}
+
 .week-day-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .week-day-name {
@@ -675,10 +860,28 @@ input, select, textarea, button {
   color: #7a4a2f;
 }
 
+.week-day.is-feiertag .week-day-name {
+  color: #a3392a;
+}
+
+.day-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .ferien-badge {
   font-size: 11px;
   font-weight: 700;
   color: #7a4a2f;
+  text-align: right;
+}
+
+.feiertag-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a3392a;
   text-align: right;
 }
 

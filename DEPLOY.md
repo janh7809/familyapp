@@ -68,7 +68,14 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.2.0**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.3.0**.
+
+## Update auf Version 0.3.0
+
+Diese Version bringt: Board-Einträge lassen sich Jan, Alice oder "Beide" zuweisen und werden in der Übersicht entsprechend in Spalten aufgeteilt (Gemeinsam / Jan / Alice, nebeneinander wenn genug Platz ist); ein Dringlichkeits-Feld mit Pflicht-Fälligkeitsdatum, wobei die rote Hervorhebung umso kräftiger wird, je näher der Termin rückt; bei Anna kann nur noch der komplette offene Betrag als bezahlt markiert werden (kein freier Betrag mehr), dazu ein Trinkgeld-Rechner in 5€-Schritten mit Live-Vorschau des theoretischen Stundensatzes inkl. Trinkgeld, und ein separater Trinkgeld-Block fürs ganze Jahr oben im Verlauf; im Kalender gibt es jetzt einen "Aktuelle Woche"-Button und Feiertage werden rot hervorgehoben plus als Jahresliste unter den Ferien aufgeführt.
+
+1. **Neue Spalten für Board-Einträge anlegen:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `migration-v3.sql` einfügen → "Run". Einmalig, zusätzlich zu `supabase-schema.sql` und `migration-v2.sql`.
+2. **Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
 
 ## Update auf Version 0.2.0
 

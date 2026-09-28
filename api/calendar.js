@@ -16,19 +16,22 @@ const DEFAULT_CALENDAR_URL =
   'https://p153-caldav.icloud.com/published/2/MTk1NTYyNzE5MTk1NTYyN0UJa4Zw6AmGqDGEHeUakuunE38t2uMzLijtPzpM7b-gV-uy_78X5k6aucxQ-lL9QqGg0MPFTRwNRQjRWFspLPQ';
 
 const FERIEN_STATE = 'BW';
+const FEIERTAGE_COUNTY = 'DE-BW';
 const RANGE_DAYS_AHEAD = 45;
 
 module.exports = async (req, res) => {
   const calendarUrl = process.env.FAMILY_CALENDAR_URL || DEFAULT_CALENDAR_URL;
 
-  const [eventsResult, holidaysResult] = await Promise.allSettled([
+  const [eventsResult, holidaysResult, feiertageResult] = await Promise.allSettled([
     fetchCalendarEvents(calendarUrl),
     fetchFerienBW(),
+    fetchFeiertageBW(),
   ]);
 
   const response = {
     events: eventsResult.status === 'fulfilled' ? eventsResult.value : [],
     holidays: holidaysResult.status === 'fulfilled' ? holidaysResult.value : [],
+    feiertage: feiertageResult.status === 'fulfilled' ? feiertageResult.value : [],
     errors: [],
   };
 
@@ -37,6 +40,9 @@ module.exports = async (req, res) => {
   }
   if (holidaysResult.status === 'rejected') {
     response.errors.push('Ferien BW konnten nicht geladen werden: ' + holidaysResult.reason.message);
+  }
+  if (feiertageResult.status === 'rejected') {
+    response.errors.push('Feiertage BW konnten nicht geladen werden: ' + feiertageResult.reason.message);
   }
 
   // 15 Minuten cachen, damit nicht bei jedem App-Aufruf neu geladen wird
@@ -135,6 +141,25 @@ async function fetchFerienBW() {
         start: h.start,
         end: h.end,
       });
+    }
+  }
+
+  return all;
+}
+
+async function fetchFeiertageBW() {
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear, currentYear + 1];
+  const all = [];
+
+  for (const year of years) {
+    const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/DE`);
+    if (!resp.ok) continue;
+    const json = await resp.json();
+    for (const h of json) {
+      const appliesToBW = h.global || (Array.isArray(h.counties) && h.counties.includes(FEIERTAGE_COUNTY));
+      if (!appliesToBW) continue;
+      all.push({ name: h.localName || h.name, date: h.date });
     }
   }
 

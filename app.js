@@ -254,6 +254,8 @@ function showToast(message) {
 
 let boardType = 'note';
 let editingBoardId = null;
+let boardAssignee = null; // null = Beide, sonst profile id
+let boardUrgent = false;
 
 document.querySelectorAll('.type-toggle').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -264,17 +266,49 @@ document.querySelectorAll('.type-toggle').forEach((btn) => {
 });
 
 function initBoard() {
+  renderBoardAssigneeToggle();
   loadBoard();
 }
+
+function renderBoardAssigneeToggle() {
+  const container = document.getElementById('board-assignee-toggle');
+  if (!container) return;
+  const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
+  container.innerHTML = `<button type="button" class="assignee-toggle-btn active" data-assignee="">Beide</button>` +
+    people.map((p) => `<button type="button" class="assignee-toggle-btn" data-assignee="${p.id}">${escapeHtml(p.display_name)}</button>`).join('');
+  boardAssignee = null;
+  container.querySelectorAll('.assignee-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.assignee-toggle-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      boardAssignee = btn.dataset.assignee || null;
+    });
+  });
+}
+
+document.getElementById('board-urgent-toggle').addEventListener('click', () => {
+  boardUrgent = !boardUrgent;
+  document.getElementById('board-urgent-toggle').classList.toggle('active', boardUrgent);
+  document.getElementById('board-urgent-date-field').classList.toggle('hidden', !boardUrgent);
+});
 
 document.getElementById('board-add-btn').addEventListener('click', async () => {
   const input = document.getElementById('board-input');
   const content = input.value.trim();
   if (!content) return;
 
+  const dueDateInput = document.getElementById('board-urgent-date');
+  if (boardUrgent && !dueDateInput.value) {
+    alert('Bitte ein Fälligkeitsdatum für den dringenden Eintrag angeben.');
+    return;
+  }
+
   const { error } = await sb.from('board_items').insert({
     type: boardType,
     content,
+    assigned_to: boardAssignee,
+    is_urgent: boardUrgent,
+    urgent_due_date: boardUrgent ? dueDateInput.value : null,
     created_by: currentUser.id,
   });
 
@@ -283,6 +317,10 @@ document.getElementById('board-add-btn').addEventListener('click', async () => {
     return;
   }
   input.value = '';
+  boardUrgent = false;
+  document.getElementById('board-urgent-toggle').classList.remove('active');
+  document.getElementById('board-urgent-date-field').classList.add('hidden');
+  dueDateInput.value = '';
   showToast('✓ Gespeichert');
   loadBoard();
 });
@@ -293,56 +331,117 @@ async function loadBoard() {
     .select('*')
     .order('created_at', { ascending: false });
 
-  const list = document.getElementById('board-list');
+  const container = document.getElementById('board-overview');
   const empty = document.getElementById('board-empty');
 
   if (error) {
-    list.innerHTML = '';
+    container.innerHTML = '';
     empty.textContent = 'Fehler beim Laden: ' + error.message;
     empty.classList.remove('hidden');
     return;
   }
 
   if (!data || data.length === 0) {
-    list.innerHTML = '';
+    container.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
 
-  list.innerHTML = data.map(renderBoardItem).join('');
+  const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
+  const shared = data.filter((i) => !i.assigned_to);
 
-  list.querySelectorAll('.checkbox').forEach((cb) => {
+  let html = '';
+  if (shared.length > 0) {
+    html += `<div class="board-group-title">Gemeinsam</div><div class="board-list">${shared.map(renderBoardItem).join('')}</div>`;
+  }
+
+  html += '<div class="board-columns">';
+  people.forEach((p) => {
+    const items = data.filter((i) => i.assigned_to === p.id);
+    html += `<div class="board-column">
+      <div class="board-group-title">${escapeHtml(p.display_name)}</div>
+      ${items.length > 0
+        ? `<div class="board-list">${items.map(renderBoardItem).join('')}</div>`
+        : `<div class="empty-hint" style="padding:14px 0">Nichts für ${escapeHtml(p.display_name)}</div>`}
+    </div>`;
+  });
+  html += '</div>';
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.checkbox').forEach((cb) => {
     cb.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleTodo(cb.dataset.id, cb.dataset.done === 'true');
     });
   });
-  list.querySelectorAll('.delete-x[data-kind="board"]').forEach((btn) => {
+  container.querySelectorAll('.delete-x[data-kind="board"]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteBoardItem(btn.dataset.id);
     });
   });
-  list.querySelectorAll('.content.editable').forEach((el) => {
+  container.querySelectorAll('.content.editable').forEach((el) => {
     el.addEventListener('click', () => {
       editingBoardId = el.dataset.id;
       loadBoard();
     });
   });
-  list.querySelectorAll('.board-save-btn').forEach((btn) => {
+  container.querySelectorAll('.board-save-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       saveBoardEdit(btn.dataset.id);
     });
   });
-  list.querySelectorAll('.board-cancel-btn').forEach((btn) => {
+  container.querySelectorAll('.board-cancel-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       editingBoardId = null;
       loadBoard();
     });
   });
+  container.querySelectorAll('.edit-assignee-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = btn.closest('.assignee-toggle-edit');
+      group.querySelectorAll('.edit-assignee-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  container.querySelectorAll('.urgent-toggle-btn[data-edit-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      const dateField = document.getElementById('board-edit-due-field-' + btn.dataset.editId);
+      if (dateField) dateField.classList.toggle('hidden', !btn.classList.contains('active'));
+    });
+  });
+}
+
+function urgentBackgroundColor(dueDateStr) {
+  const due = startOfDay(new Date(dueDateStr));
+  const today = startOfDay(new Date());
+  const daysLeft = Math.round((due - today) / 86400000);
+  const maxWindow = 14;
+  const clamped = Math.max(0, Math.min(maxWindow, daysLeft));
+  const ratio = 1 - clamped / maxWindow;
+  const light = [255, 224, 220];
+  const strong = [214, 68, 58];
+  const r = Math.round(light[0] + (strong[0] - light[0]) * ratio);
+  const g = Math.round(light[1] + (strong[1] - light[1]) * ratio);
+  const b = Math.round(light[2] + (strong[2] - light[2]) * ratio);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function renderUrgentDueMeta(dueDateStr) {
+  const due = startOfDay(new Date(dueDateStr));
+  const today = startOfDay(new Date());
+  const daysLeft = Math.round((due - today) / 86400000);
+  let text;
+  if (daysLeft < 0) text = `🔴 Überfällig seit ${Math.abs(daysLeft)} Tag${Math.abs(daysLeft) === 1 ? '' : 'en'} (${formatDateDE(due)})`;
+  else if (daysLeft === 0) text = `🔴 Heute fällig!`;
+  else if (daysLeft === 1) text = `🔴 Morgen fällig (${formatDateDE(due)})`;
+  else text = `🔴 Fällig in ${daysLeft} Tagen (${formatDateDE(due)})`;
+  return `<div class="urgent-due">${text}</div>`;
 }
 
 function renderBoardItem(item) {
@@ -352,12 +451,27 @@ function renderBoardItem(item) {
     : `<div class="type-dot"></div>`;
 
   if (item.id === editingBoardId) {
+    const people = Object.values(profilesById).sort((a, b) => a.display_name.localeCompare(b.display_name));
+    const assigneeButtons = `<button type="button" class="edit-assignee-btn ${!item.assigned_to ? 'active' : ''}" data-assignee="">Beide</button>` +
+      people.map((p) => `<button type="button" class="edit-assignee-btn ${item.assigned_to === p.id ? 'active' : ''}" data-assignee="${p.id}">${escapeHtml(p.display_name)}</button>`).join('');
+
     return `
       <div class="board-item ${item.type} editing">
         ${marker}
         <div class="content">
           <div class="editing-label">✎ Eintrag bearbeiten</div>
           <textarea class="edit-textarea" id="board-edit-${item.id}">${escapeHtml(item.content)}</textarea>
+          <div class="field">
+            <label>Für wen?</label>
+            <div class="toggle-group assignee-toggle-edit">${assigneeButtons}</div>
+          </div>
+          <div class="field">
+            <button type="button" class="urgent-toggle-btn ${item.is_urgent ? 'active' : ''}" data-edit-id="${item.id}">🔴 Dringend</button>
+          </div>
+          <div class="field ${item.is_urgent ? '' : 'hidden'}" id="board-edit-due-field-${item.id}">
+            <label>Fällig am</label>
+            <input type="date" id="board-edit-due-${item.id}" value="${item.urgent_due_date || ''}" />
+          </div>
           <div class="edit-actions">
             <button class="btn btn-small board-save-btn" data-id="${item.id}">Speichern</button>
             <button class="btn btn-small btn-secondary board-cancel-btn">Abbrechen</button>
@@ -367,16 +481,21 @@ function renderBoardItem(item) {
   }
 
   const doneClass = item.is_done ? 'done' : '';
+  const urgentClass = item.is_urgent ? 'urgent' : '';
   const creator = displayNameFor(item.created_by);
   const meta = isTodo && item.is_done
     ? `erledigt von ${displayNameFor(item.done_by)} · ${formatDateTimeDE(item.done_at)}`
     : `von ${creator} · ${formatDateTimeDE(item.created_at)}`;
 
+  const urgentMeta = item.is_urgent && item.urgent_due_date ? renderUrgentDueMeta(item.urgent_due_date) : '';
+  const styleAttr = item.is_urgent && item.urgent_due_date ? ` style="background:${urgentBackgroundColor(item.urgent_due_date)}"` : '';
+
   return `
-    <div class="board-item ${item.type} ${doneClass}">
+    <div class="board-item ${item.type} ${doneClass} ${urgentClass}"${styleAttr}>
       ${marker}
       <div class="content editable" data-id="${item.id}">
         <div class="text">${escapeHtml(item.content)}</div>
+        ${urgentMeta}
         <div class="meta">${meta}</div>
       </div>
       <div class="delete-x" data-id="${item.id}" data-kind="board">✕</div>
@@ -408,7 +527,21 @@ async function saveBoardEdit(id) {
     alert('Der Eintrag darf nicht leer sein.');
     return;
   }
-  const { error } = await sb.from('board_items').update({ content }).eq('id', id);
+
+  const activeAssigneeBtn = document.querySelector('.assignee-toggle-edit .edit-assignee-btn.active');
+  const assigned_to = activeAssigneeBtn ? (activeAssigneeBtn.dataset.assignee || null) : null;
+
+  const urgentBtn = document.querySelector('.urgent-toggle-btn[data-edit-id="' + id + '"]');
+  const is_urgent = urgentBtn ? urgentBtn.classList.contains('active') : false;
+  const dueInput = document.getElementById('board-edit-due-' + id);
+  const urgent_due_date = is_urgent ? (dueInput ? dueInput.value : '') : null;
+
+  if (is_urgent && !urgent_due_date) {
+    alert('Bitte ein Fälligkeitsdatum für den dringenden Eintrag angeben.');
+    return;
+  }
+
+  const { error } = await sb.from('board_items').update({ content, assigned_to, is_urgent, urgent_due_date }).eq('id', id);
   if (error) {
     alert('Fehler: ' + error.message);
     return;
@@ -421,9 +554,13 @@ async function saveBoardEdit(id) {
 document.getElementById('board-export-btn').addEventListener('click', async () => {
   const { data, error } = await sb.from('board_items').select('*').order('created_at', { ascending: true });
   if (error) { alert('Fehler: ' + error.message); return; }
-  const rows = [['Typ', 'Inhalt', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
+  const rows = [['Typ', 'Inhalt', 'Für', 'Dringend', 'Fällig am', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
   data.forEach((i) => rows.push([
     i.type === 'todo' ? 'ToDo' : 'Notiz',
+    i.content,
+    i.assigned_to ? displayNameFor(i.assigned_to) : 'Beide',
+    i.is_urgent ? 'Ja' : 'Nein',
+    i.urgent_due_date ? formatDateDE(i.urgent_due_date) : '',
     i.content,
     displayNameFor(i.created_by),
     formatDateTimeDE(i.created_at),
@@ -597,6 +734,8 @@ let annaEntriesCache = [];
 let annaPaymentsCache = [];
 let annaSelectedYear = new Date().getFullYear();
 let editingAnnaId = null; // "entry:<id>" oder "payment:<id>"
+let annaOpenBalance = 0;
+let annaTipDraft = 0;
 
 function initAnna() {
   document.getElementById('anna-hours-date').value = todayISO();
@@ -624,6 +763,7 @@ async function loadAnna() {
   const totalHoursAmount = annaEntriesCache.reduce((sum, e) => sum + Number(e.amount), 0);
   const totalPaid = annaPaymentsCache.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = totalHoursAmount - totalPaid;
+  annaOpenBalance = balance > 0 ? balance : 0;
 
   document.getElementById('anna-balance').textContent = formatEuro(balance);
   document.getElementById('anna-balance').style.color = balance > 0 ? 'var(--color-danger)' : 'var(--color-success)';
@@ -631,8 +771,49 @@ async function loadAnna() {
   const lastPaid = annaPaymentsCache[0];
   document.getElementById('anna-last-paid').textContent = lastPaid ? formatDateDE(lastPaid.payment_date) : 'noch nie';
 
+  updatePaymentBox();
   renderAnnaHistory();
 }
+
+function annaUnpaidHours() {
+  const lastPaid = annaPaymentsCache[0];
+  const cutoff = lastPaid ? lastPaid.payment_date : null;
+  const relevant = cutoff ? annaEntriesCache.filter((e) => e.work_date > cutoff) : annaEntriesCache;
+  return relevant.reduce((sum, e) => sum + Number(e.hours), 0);
+}
+
+function updatePaymentBox() {
+  document.getElementById('anna-pay-due-amount').textContent = formatEuro(annaOpenBalance);
+  document.getElementById('anna-tip-value').textContent = formatEuro(annaTipDraft);
+
+  const unpaidHours = annaUnpaidHours();
+  const rateEl = document.getElementById('anna-rate-preview');
+  const hintEl = document.getElementById('anna-rate-preview-hint');
+  if (unpaidHours > 0) {
+    const effectiveRate = (annaOpenBalance + annaTipDraft) / unpaidHours;
+    rateEl.textContent = formatEuro(effectiveRate) + '/h';
+    hintEl.textContent = `bei ${unpaidHours} Std. seit der letzten Zahlung`;
+  } else {
+    rateEl.textContent = '–';
+    hintEl.textContent = '';
+  }
+
+  const submitBtn = document.getElementById('anna-pay-submit');
+  const noneEl = document.getElementById('anna-pay-none');
+  const hasOpenAmount = annaOpenBalance > 0;
+  submitBtn.classList.toggle('hidden', !hasOpenAmount);
+  noneEl.classList.toggle('hidden', hasOpenAmount);
+}
+
+document.getElementById('anna-tip-minus').addEventListener('click', () => {
+  annaTipDraft = Math.max(0, annaTipDraft - 5);
+  updatePaymentBox();
+});
+
+document.getElementById('anna-tip-plus').addEventListener('click', () => {
+  annaTipDraft += 5;
+  updatePaymentBox();
+});
 
 function renderAnnaHistory() {
   const yr = annaSelectedYear;
@@ -645,6 +826,10 @@ function renderAnnaHistory() {
     ...entries.map((e) => ({ ...e, _kind: 'entry', _date: e.work_date })),
     ...payments.map((p) => ({ ...p, _kind: 'payment', _date: p.payment_date })),
   ].sort((a, b) => new Date(b._date) - new Date(a._date));
+
+  const tipTotal = payments.reduce((sum, p) => sum + Number(p.tip || 0), 0);
+  document.getElementById('anna-tip-year-label').textContent = yr;
+  document.getElementById('anna-tip-year-amount').textContent = formatEuro(tipTotal);
 
   const container = document.getElementById('anna-history');
   const empty = document.getElementById('anna-empty');
@@ -827,24 +1012,25 @@ document.getElementById('anna-hours-submit').addEventListener('click', async () 
 
 document.getElementById('anna-pay-submit').addEventListener('click', async () => {
   const payment_date = document.getElementById('anna-pay-date').value;
-  const amount = parseFloat(document.getElementById('anna-pay-amount').value);
-  const tip = parseFloat(document.getElementById('anna-pay-tip').value) || 0;
   const note = document.getElementById('anna-pay-note').value.trim() || null;
 
-  if (!payment_date || !amount) {
-    alert('Bitte Datum und Betrag ausfüllen.');
+  if (!payment_date) {
+    alert('Bitte ein Datum auswählen.');
+    return;
+  }
+  if (annaOpenBalance <= 0) {
+    alert('Aktuell ist kein Betrag offen.');
     return;
   }
 
   const { error } = await sb.from('anna_payments').insert({
-    payment_date, amount, tip, note, created_by: currentUser.id,
+    payment_date, amount: annaOpenBalance, tip: annaTipDraft, note, created_by: currentUser.id,
   });
   if (error) { alert('Fehler: ' + error.message); return; }
 
-  document.getElementById('anna-pay-amount').value = '';
-  document.getElementById('anna-pay-tip').value = '0';
   document.getElementById('anna-pay-note').value = '';
   document.getElementById('anna-pay-date').value = todayISO();
+  annaTipDraft = 0;
   showToast('✓ Gespeichert');
   loadAnna();
 });
@@ -870,6 +1056,7 @@ document.getElementById('anna-export-btn').addEventListener('click', async () =>
 
 let kalenderEventsCache = [];
 let kalenderHolidaysCache = [];
+let kalenderFeiertageCache = [];
 let kalenderWeekOffset = 0;
 
 function initKalender() {
@@ -877,15 +1064,20 @@ function initKalender() {
 }
 
 async function loadKalender() {
-  const calRes = await fetch('/api/calendar').then((r) => r.json()).catch((e) => ({ events: [], holidays: [], errors: [String(e)] }));
+  const calRes = await fetch('/api/calendar').then((r) => r.json()).catch((e) => ({ events: [], holidays: [], feiertage: [], errors: [String(e)] }));
   kalenderEventsCache = calRes.events || [];
   kalenderHolidaysCache = (calRes.holidays || []).map((h) => ({
     ...h,
     startD: startOfDay(new Date(h.start)),
     endD: startOfDay(new Date(h.end)),
   }));
+  kalenderFeiertageCache = (calRes.feiertage || []).map((f) => ({
+    ...f,
+    dateD: startOfDay(new Date(f.date)),
+  }));
   renderKalenderWeek();
   renderFerienList();
+  renderFeiertageList();
 }
 
 function startOfDay(d) {
@@ -903,6 +1095,10 @@ function mondayOfWeek(date) {
 
 function holidayForDate(date) {
   return kalenderHolidaysCache.find((h) => date >= h.startD && date <= h.endD) || null;
+}
+
+function feiertagForDate(date) {
+  return kalenderFeiertageCache.find((f) => f.dateD.getTime() === date.getTime()) || null;
 }
 
 function renderKalenderWeek() {
@@ -939,13 +1135,20 @@ function renderKalenderWeek() {
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     const holiday = holidayForDate(day);
+    const feiertag = feiertagForDate(day);
     const isToday = day.getTime() === today.getTime();
     const dayLabel = day.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
 
-    html += `<div class="week-day ${holiday ? 'is-ferien' : ''} ${isToday ? 'is-today' : ''}">
+    const badges = [];
+    if (feiertag) badges.push(`<span class="feiertag-badge">🎉 ${escapeHtml(feiertag.name)}</span>`);
+    if (holiday) badges.push(`<span class="ferien-badge">🏖️ ${escapeHtml(holiday.name)}</span>`);
+
+    const dayClass = feiertag ? 'is-feiertag' : (holiday ? 'is-ferien' : '');
+
+    html += `<div class="week-day ${dayClass} ${isToday ? 'is-today' : ''}">
       <div class="week-day-head">
         <span class="week-day-name">${isToday ? 'Heute · ' : ''}${dayLabel}</span>
-        ${holiday ? `<span class="ferien-badge">🏖️ ${escapeHtml(holiday.name)}</span>` : ''}
+        ${badges.length ? `<span class="day-badges">${badges.join('')}</span>` : ''}
       </div>
       ${rows.length > 0
         ? rows.map((r) => `
@@ -984,6 +1187,29 @@ function renderFerienList() {
     </div>`).join('');
 }
 
+function renderFeiertageList() {
+  const container = document.getElementById('feiertage-list');
+  const empty = document.getElementById('feiertage-empty');
+  const currentYear = new Date().getFullYear();
+
+  const list = kalenderFeiertageCache
+    .filter((f) => f.dateD.getFullYear() === currentYear)
+    .sort((a, b) => a.dateD - b.dateD);
+
+  if (list.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  container.innerHTML = list.map((f) => `
+    <div class="history-row">
+      <div>${escapeHtml(f.name)}</div>
+      <div class="hr-date">${formatDateDE(f.dateD)}</div>
+    </div>`).join('');
+}
+
 document.getElementById('kalender-week-prev').addEventListener('click', () => {
   kalenderWeekOffset -= 1;
   renderKalenderWeek();
@@ -991,6 +1217,11 @@ document.getElementById('kalender-week-prev').addEventListener('click', () => {
 
 document.getElementById('kalender-week-next').addEventListener('click', () => {
   kalenderWeekOffset += 1;
+  renderKalenderWeek();
+});
+
+document.getElementById('kalender-week-today').addEventListener('click', () => {
+  kalenderWeekOffset = 0;
   renderKalenderWeek();
 });
 

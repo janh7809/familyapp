@@ -55,14 +55,25 @@
         <button type="button" class="type-toggle" data-type="todo">✅ ToDo</button>
       </div>
       <div class="field">
+        <label>Für wen?</label>
+        <div class="toggle-group" id="board-assignee-toggle"></div>
+      </div>
+      <div class="field">
         <textarea id="board-input" placeholder="Was möchtest du festhalten?"></textarea>
+      </div>
+      <div class="field">
+        <button type="button" class="urgent-toggle-btn" id="board-urgent-toggle">🔴 Dringend</button>
+      </div>
+      <div class="field hidden" id="board-urgent-date-field">
+        <label for="board-urgent-date">Fällig am</label>
+        <input type="date" id="board-urgent-date" />
       </div>
       <button class="btn" id="board-add-btn">Hinzufügen</button>
     </div>
 
     <div class="card">
       <h2>Übersicht</h2>
-      <div id="board-list"></div>
+      <div id="board-overview"></div>
       <div class="empty-hint hidden" id="board-empty">Noch nichts eingetragen.</div>
     </div>
   </div>
@@ -93,6 +104,7 @@
         <div class="week-label" id="kalender-week-label">–</div>
         <button type="button" class="year-btn" id="kalender-week-next">›</button>
       </div>
+      <button type="button" class="btn btn-secondary btn-small" id="kalender-week-today" style="width:100%;margin-bottom:12px">Aktuelle Woche</button>
       <div id="kalender-week"></div>
     </div>
 
@@ -100,6 +112,12 @@
       <h2>Ferien</h2>
       <div id="ferien-list"></div>
       <div class="empty-hint hidden" id="ferien-empty">Keine Ferien-Daten gefunden.</div>
+    </div>
+
+    <div class="card">
+      <h2>Feiertage</h2>
+      <div id="feiertage-list"></div>
+      <div class="empty-hint hidden" id="feiertage-empty">Keine Feiertage-Daten gefunden.</div>
     </div>
   </div>
 
@@ -197,25 +215,33 @@
 
     <div class="card">
       <h2>Zahlung eintragen</h2>
+      <div class="payment-due-box">
+        <div class="payment-due-label">Offener Betrag – wird als bezahlt markiert</div>
+        <div class="payment-due-amount" id="anna-pay-due-amount">–</div>
+      </div>
       <div class="field">
         <label for="anna-pay-date">Bezahlt am</label>
         <input type="date" id="anna-pay-date" />
       </div>
-      <div class="btn-row">
-        <div class="field" style="flex:1">
-          <label for="anna-pay-amount">Betrag (€)</label>
-          <input type="number" step="0.5" min="0" id="anna-pay-amount" />
+      <div class="field">
+        <label>Trinkgeld</label>
+        <div class="tip-stepper">
+          <button type="button" class="tip-step-btn" id="anna-tip-minus">− 5 €</button>
+          <div class="tip-step-value" id="anna-tip-value">0 €</div>
+          <button type="button" class="tip-step-btn" id="anna-tip-plus">+ 5 €</button>
         </div>
-        <div class="field" style="flex:1">
-          <label for="anna-pay-tip">davon Trinkgeld (€)</label>
-          <input type="number" step="0.5" min="0" id="anna-pay-tip" value="0" />
-        </div>
+      </div>
+      <div class="rate-preview">
+        <div class="rate-preview-label">Theoretischer Stundensatz inkl. Trinkgeld</div>
+        <div class="rate-preview-value" id="anna-rate-preview">–</div>
+        <div class="rate-preview-hint" id="anna-rate-preview-hint"></div>
       </div>
       <div class="field">
         <label for="anna-pay-note">Notiz (optional)</label>
         <input type="text" id="anna-pay-note" />
       </div>
-      <button class="btn" id="anna-pay-submit">Zahlung speichern</button>
+      <button class="btn" id="anna-pay-submit">Zahlung bestätigen</button>
+      <div class="empty-hint hidden" id="anna-pay-none">Aktuell ist kein Betrag offen.</div>
     </div>
 
     <div class="card">
@@ -226,6 +252,10 @@
           <span id="anna-year-label">–</span>
           <button type="button" class="year-btn" id="anna-year-next">›</button>
         </div>
+      </div>
+      <div class="tip-year-block">
+        <div class="tip-year-label">🪙 Trinkgeld <span id="anna-tip-year-label"></span></div>
+        <div class="tip-year-amount" id="anna-tip-year-amount">–</div>
       </div>
       <div id="anna-history"></div>
       <div class="empty-hint hidden" id="anna-empty">Keine Einträge in diesem Jahr.</div>
