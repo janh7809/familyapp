@@ -79,6 +79,14 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   await sb.auth.signOut();
 });
 
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  refreshAllViews();
+  showToast('✓ Aktualisiert');
+  setTimeout(() => btn.classList.remove('spinning'), 600);
+});
+
 async function loadAllProfiles() {
   const { data, error } = await sb.from('profiles').select('id, display_name');
   if (!error && data) {
@@ -348,6 +356,7 @@ function renderBoardItem(item) {
       <div class="board-item ${item.type} editing">
         ${marker}
         <div class="content">
+          <div class="editing-label">✎ Eintrag bearbeiten</div>
           <textarea class="edit-textarea" id="board-edit-${item.id}">${escapeHtml(item.content)}</textarea>
           <div class="edit-actions">
             <button class="btn btn-small board-save-btn" data-id="${item.id}">Speichern</button>
@@ -518,6 +527,7 @@ function renderShoppingItem(item) {
       <div class="board-item editing">
         <div class="type-dot"></div>
         <div class="content">
+          <div class="editing-label">✎ Eintrag bearbeiten</div>
           <textarea class="edit-textarea" id="shopping-edit-${item.id}">${escapeHtml(item.content)}</textarea>
           <div class="edit-actions">
             <button class="btn btn-small shopping-save-btn" data-id="${item.id}">Speichern</button>
@@ -682,6 +692,7 @@ function renderAnnaHistoryRow(item) {
     if (item._kind === 'entry') {
       return `
         <div class="history-row entry editing-row">
+          <div class="editing-label">✎ Eintrag bearbeiten</div>
           <div class="edit-grid">
             <div class="field"><label>Datum</label><input type="date" id="anna-edit-date-${item.id}" value="${item.work_date}" /></div>
             <div class="field"><label>Stunden</label><input type="number" step="0.25" min="0" id="anna-edit-hours-${item.id}" value="${item.hours}" /></div>
@@ -697,6 +708,7 @@ function renderAnnaHistoryRow(item) {
     const tip = Number(item.tip) || 0;
     return `
       <div class="history-row payment editing-row">
+        <div class="editing-label">✎ Zahlung bearbeiten</div>
         <div class="edit-grid">
           <div class="field"><label>Bezahlt am</label><input type="date" id="anna-edit-date-${item.id}" value="${item.payment_date}" /></div>
           <div class="field"><label>Betrag (€)</label><input type="number" step="0.5" min="0" id="anna-edit-amount-${item.id}" value="${item.amount}" /></div>
@@ -767,6 +779,7 @@ async function saveAnnaEdit(kind, id) {
     if (error) { alert('Fehler: ' + error.message); return; }
   }
   editingAnnaId = null;
+  renderAnnaHistory();
   showToast('✓ Gespeichert');
   loadAnna();
 }
