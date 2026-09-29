@@ -68,7 +68,36 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.4**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.8**.
+
+## Update auf Version 0.4.8
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Die Balken in der Zeitleiste zeigen jetzt nur noch einen Anfangsbuchstaben (S, K, T, W, F, M …), zentriert und größer – die vollen Abkürzungen samt Uhrzeiten stehen weiterhin als Text darunter und in der Legende.
+- Alle Felder der Matrix sind jetzt exakt gleich groß, unabhängig davon, ob ein Kind an einem Tag 0, 1 oder 2 Termine hat – die Matrix wirkt dadurch gleichmäßiger.
+- Der Reiter unten heißt jetzt "Stundenpläne" statt "Stundenplan".
+
+## Update auf Version 0.4.7
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Die Balken in der Stundenplan-Zeitleiste zeigen jetzt feste Abkürzungen (Schu, Kiga, TaMu, Wing, Fuba, THW, MTB) statt abgeschnittener Wörter.
+- Unter jeder Zeitleiste stehen jetzt zusätzlich die genauen Uhrzeiten als Text (z.B. "Fuba 17:30–19:00") – nicht mehr nur über den Balken erkennbar.
+- Ganz unten in der Karte gibt es jetzt eine Legende: Farberklärung (Türkis = Betreuung, Lila = Aktivität) sowie alle Abkürzungen ausgeschrieben.
+
+## Update auf Version 0.4.6
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Statt Text-Zeilen zeigt jede Zelle der Stundenplan-Matrix jetzt eine kalenderartige Zeitleiste von 7 bis 20 Uhr: Die Position des Balkens zeigt die Uhrzeit, die Breite die Dauer. So ist auf einen Blick erkennbar, wer wann was hat und wie lange – auch im Vergleich zu den Geschwistern in derselben Zeile.
+- Betreuungszeiten (Schule/Kindergarten/Tagesmutter) sind türkis, Aktivitäten (Sport etc.) lila – bei sehr kurzen Terminen (z.B. Wingtsun 45 Min.) passt oft nur der Anfangsbuchstabe in den Balken; den vollen Namen und die genaue Uhrzeit sieht man beim Antippen im Formular darunter.
+
+## Update auf Version 0.4.5
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Die Stundenplan-Matrix war auf dem Handy zu breit (6 Wochentags-Spalten passten nicht aufs Display). Jetzt gedreht: Wochentage stehen als Zeilen untereinander, Henry/George/Oliver als 3 Spalten nebeneinander – passt jetzt auf jedes Handy, ganz ohne seitliches Scrollen.
 
 ## Update auf Version 0.4.4
 

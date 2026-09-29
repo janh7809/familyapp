@@ -1401,9 +1401,30 @@ const WEEKDAY_SHORT = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const KIDS_ORDER = ['Henry', 'George', 'Oliver'];
 const KIDS_LABEL = { Henry: 'Schule', George: 'Kindergarten', Oliver: 'Tagesmutter' };
 const KIDS_WEEKDAYS = 6; // Mo-Sa
+const KIDS_DAY_START = 7 * 60; // 07:00 Uhr, in Minuten
+const KIDS_DAY_END = 20 * 60; // 20:00 Uhr, in Minuten
+const KIDS_DAY_SPAN = KIDS_DAY_END - KIDS_DAY_START;
+const KIDS_ABBR = {
+  Schule: 'Schu',
+  Kindergarten: 'Kiga',
+  Tagesmutter: 'TaMu',
+  Wingtsun: 'Wing',
+  Fußball: 'Fuba',
+  THW: 'THW',
+  Mountainbike: 'MTB',
+};
 
 let kidsScheduleCache = [];
 let editingKidsId = null;
+
+function kidsAbbr(label) {
+  if (KIDS_ABBR[label]) return KIDS_ABBR[label];
+  return (label || '').slice(0, 4);
+}
+
+function kidsInitial(label) {
+  return (label || '').trim().charAt(0).toUpperCase();
+}
 
 function initStundenplaene() {
   loadStundenplaene();
@@ -1425,38 +1446,62 @@ function findKidsEntryById(id) {
   return kidsScheduleCache.find((k) => k.id === id) || null;
 }
 
+function kidsMinutes(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function kidsBarStyle(entry) {
+  const startMin = Math.min(Math.max(kidsMinutes(entry.start_time), KIDS_DAY_START), KIDS_DAY_END);
+  const endMin = Math.min(Math.max(kidsMinutes(entry.end_time || entry.start_time), startMin), KIDS_DAY_END);
+  const leftPct = ((startMin - KIDS_DAY_START) / KIDS_DAY_SPAN) * 100;
+  const widthPct = Math.max(((endMin - startMin) / KIDS_DAY_SPAN) * 100, 2);
+  return `left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%;`;
+}
+
 function renderKidsScheduleMatrix() {
+  // Wochentage als Zeilen, Kinder als Spalten. Statt Text-Listen zeigt jede
+  // Zelle eine kalenderartige Zeitleiste (07-20 Uhr): Position = Uhrzeit,
+  // Breite = Dauer - so ist auf einen Blick erkennbar, wer wann wie lange
+  // etwas hat, und wie sich die Termine der Kinder zueinander verhalten.
   const container = document.getElementById('kids-schedule-matrix');
 
-  let html = '<div class="kids-matrix-scroll"><table class="kids-matrix-table">';
-  html += '<thead><tr><th>Kind</th>';
-  for (let d = 1; d <= KIDS_WEEKDAYS; d++) html += `<th>${WEEKDAY_SHORT[d]}</th>`;
+  let html = '<table class="kids-matrix-table">';
+  html += '<thead><tr><th class="kids-day-col">Tag</th>';
+  KIDS_ORDER.forEach((child) => {
+    html += `<th>${escapeHtml(child)}<span class="kids-row-sub">${KIDS_LABEL[child]}</span>
+      <div class="kids-axis"><span>7</span><span>13</span><span>20</span></div>
+    </th>`;
+  });
   html += '</tr></thead><tbody>';
 
-  KIDS_ORDER.forEach((child) => {
-    html += `<tr><th class="kids-row-label">${escapeHtml(child)}<span class="kids-row-sub">${KIDS_LABEL[child]}</span></th>`;
-    for (let d = 1; d <= KIDS_WEEKDAYS; d++) {
+  for (let d = 1; d <= KIDS_WEEKDAYS; d++) {
+    html += `<tr><th class="kids-row-label kids-day-col">${WEEKDAY_SHORT[d]}</th>`;
+    KIDS_ORDER.forEach((child) => {
       const entries = findKidsEntries(child, d);
-      let cellInner;
-      if (entries.length === 0) {
-        cellInner = '<span class="kids-cell-empty">–</span>';
-      } else {
-        cellInner = entries.map((entry) => {
-          const isMain = entry.label === KIDS_LABEL[child];
-          const timeText = `${entry.start_time.slice(0, 5)}–${(entry.end_time || '').slice(0, 5)}`;
-          return `<div class="kids-entry${isMain ? '' : ' kids-entry-activity'}" data-id="${entry.id}">
-            <span class="kids-entry-time">${timeText}</span>
-            <span class="kids-entry-label">${escapeHtml(entry.label || '')}</span>
-          </div>`;
-        }).join('');
-      }
-      html += `<td class="kids-cell${entries.length ? ' has-entry' : ''}" data-child="${escapeHtml(child)}" data-weekday="${d}">${cellInner}</td>`;
-    }
+      const bars = entries.map((entry) => {
+        const isMain = entry.label === KIDS_LABEL[child];
+        const timeText = `${entry.start_time.slice(0, 5)}–${(entry.end_time || '').slice(0, 5)}`;
+        return `<div class="kids-bar${isMain ? '' : ' kids-bar-activity'}" style="${kidsBarStyle(entry)}" data-id="${entry.id}" title="${escapeHtml(entry.label || '')} ${timeText}">
+          <span class="kids-bar-label">${escapeHtml(kidsInitial(entry.label))}</span>
+        </div>`;
+      }).join('');
+      const timeLines = entries.map((entry) => {
+        const isMain = entry.label === KIDS_LABEL[child];
+        const timeText = `${entry.start_time.slice(0, 5)}–${(entry.end_time || '').slice(0, 5)}`;
+        return `<div class="kids-time-line${isMain ? '' : ' kids-time-line-activity'}" data-id="${entry.id}">${escapeHtml(kidsAbbr(entry.label))} ${timeText}</div>`;
+      }).join('');
+      html += `<td class="kids-cell">
+        <div class="kids-timeline" data-child="${escapeHtml(child)}" data-weekday="${d}">${bars}</div>
+        <div class="kids-times">${timeLines}</div>
+      </td>`;
+    });
     html += '</tr>';
-  });
+  }
 
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   container.innerHTML = html;
+  renderKidsLegend();
 
   function fillFormNew(child, weekday) {
     editingKidsId = null;
@@ -1476,22 +1521,52 @@ function renderKidsScheduleMatrix() {
     document.getElementById('kids-end-time').value = entry.end_time ? entry.end_time.slice(0, 5) : '';
   }
 
-  container.querySelectorAll('.kids-entry').forEach((row) => {
-    row.addEventListener('click', (e) => {
+  container.querySelectorAll('.kids-bar').forEach((bar) => {
+    bar.addEventListener('click', (e) => {
       e.stopPropagation();
-      const entry = findKidsEntryById(row.dataset.id);
+      const entry = findKidsEntryById(bar.dataset.id);
       if (!entry) return;
       fillFormEdit(entry);
       document.getElementById('kids-child-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   });
 
-  container.querySelectorAll('.kids-cell').forEach((cell) => {
-    cell.addEventListener('click', () => {
-      fillFormNew(cell.dataset.child, parseInt(cell.dataset.weekday, 10));
+  container.querySelectorAll('.kids-timeline').forEach((timeline) => {
+    timeline.addEventListener('click', () => {
+      fillFormNew(timeline.dataset.child, parseInt(timeline.dataset.weekday, 10));
       document.getElementById('kids-child-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   });
+
+  container.querySelectorAll('.kids-time-line').forEach((line) => {
+    line.addEventListener('click', () => {
+      const entry = findKidsEntryById(line.dataset.id);
+      if (!entry) return;
+      fillFormEdit(entry);
+      document.getElementById('kids-child-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+}
+
+function renderKidsLegend() {
+  const legendContainer = document.getElementById('kids-schedule-legend');
+  if (!legendContainer) return;
+
+  const seen = new Map();
+  KIDS_ORDER.forEach((child) => seen.set(KIDS_LABEL[child], kidsAbbr(KIDS_LABEL[child])));
+  kidsScheduleCache.forEach((k) => { if (k.label) seen.set(k.label, kidsAbbr(k.label)); });
+
+  const abbrItems = Array.from(seen.entries())
+    .map(([label, abbr]) => `<span class="kids-legend-item"><strong>${escapeHtml(abbr)}</strong> = ${escapeHtml(label)}</span>`)
+    .join('');
+
+  legendContainer.innerHTML = `
+    <div class="kids-legend-colors">
+      <span class="kids-legend-color-item"><span class="kids-legend-dot"></span>Betreuung</span>
+      <span class="kids-legend-color-item"><span class="kids-legend-dot kids-legend-dot-activity"></span>Aktivität</span>
+    </div>
+    <div class="kids-legend-abbrs">${abbrItems}</div>
+  `;
 }
 
 document.getElementById('kids-schedule-submit').addEventListener('click', async () => {

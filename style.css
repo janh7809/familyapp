@@ -728,22 +728,19 @@ input, select, textarea, button {
   flex-shrink: 0;
 }
 
-.kids-matrix-scroll {
-  overflow-x: auto;
-  margin: 4px -2px 0;
-}
-
 .kids-matrix-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .kids-matrix-table th,
 .kids-matrix-table td {
   border: 1px solid var(--color-border);
   text-align: center;
-  padding: 8px 4px;
+  padding: 6px 2px;
+  word-break: break-word;
 }
 
 .kids-matrix-table thead th {
@@ -751,86 +748,170 @@ input, select, textarea, button {
   color: var(--color-primary-dark);
   font-weight: 700;
   font-size: 12px;
-  white-space: nowrap;
 }
 
 .kids-matrix-table thead th:first-child {
   background: transparent;
 }
 
+.kids-day-col {
+  width: 15%;
+}
+
 .kids-row-label {
-  text-align: left !important;
+  text-align: center !important;
   background: var(--color-bg);
   font-weight: 700;
-  white-space: nowrap;
-  padding-left: 8px !important;
 }
 
 .kids-row-sub {
   display: block;
   font-weight: 400;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--color-text-muted);
 }
 
 .kids-cell {
-  cursor: pointer;
+  padding: 4px !important;
+  vertical-align: middle;
+}
+
+.kids-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  font-weight: 400;
   color: var(--color-text-muted);
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.kids-timeline {
+  position: relative;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  background:
+    repeating-linear-gradient(
+      to right,
+      var(--color-border) 0,
+      var(--color-border) 1px,
+      transparent 1px,
+      transparent 25%
+    ),
+    var(--color-bg);
+}
+
+.kids-timeline:active {
+  background:
+    repeating-linear-gradient(
+      to right,
+      var(--color-border) 0,
+      var(--color-border) 1px,
+      transparent 1px,
+      transparent 25%
+    ),
+    var(--color-primary-light);
+}
+
+.kids-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  min-width: 15px;
+  border-radius: 4px;
+  background: var(--color-primary);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--color-card);
+}
+
+.kids-bar:active {
+  filter: brightness(0.92);
+}
+
+.kids-bar-activity {
+  background: #9b87d9;
+}
+
+.kids-bar-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 24px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.kids-times {
+  margin-top: 3px;
+  min-height: 30px;
+}
+
+.kids-time-line {
+  font-size: 9px;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  transition: background 0.15s;
-  vertical-align: middle;
-  padding: 5px 3px !important;
 }
 
-.kids-cell:active {
-  background: var(--color-primary-light);
+.kids-time-line-activity {
+  color: #6b57ad;
 }
 
-.kids-cell.has-entry {
-  color: var(--color-text);
-  background: #f4fdfc;
-}
-
-.kids-cell-empty {
-  color: var(--color-text-muted);
+.kids-time-line:active {
   opacity: 0.6;
 }
 
-.kids-entry {
-  padding: 3px 2px;
-  border-radius: 6px;
-  line-height: 1.25;
+.kids-legend {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
 }
 
-.kids-entry + .kids-entry {
-  margin-top: 3px;
+.kids-legend-colors {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 6px;
 }
 
-.kids-entry:active {
-  background: var(--color-primary-light);
-}
-
-.kids-entry-time {
-  display: block;
-  font-weight: 700;
+.kids-legend-color-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
-}
-
-.kids-entry-label {
-  display: block;
-  font-size: 10px;
   color: var(--color-text-muted);
 }
 
-.kids-entry-activity {
-  background: var(--color-accent-lavender);
-  color: var(--color-text);
+.kids-legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--color-primary);
 }
 
-.kids-entry-activity .kids-entry-label {
+.kids-legend-dot-activity {
+  background: #9b87d9;
+}
+
+.kids-legend-abbrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.kids-legend-item {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+}
+
+.kids-legend-item strong {
   color: var(--color-text);
-  font-weight: 600;
 }
 
 .history-row.is-current-period {
