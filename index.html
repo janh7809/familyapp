@@ -187,6 +187,83 @@
     </div>
   </div>
 
+  <!-- ---------- Checkliste View ---------- -->
+  <div class="view hidden" id="view-checkliste">
+
+    <div class="card checklist-scene" id="checklist-scene-card">
+      <div class="checklist-header-row">
+        <h2 id="checklist-scene-title">Checkliste</h2>
+        <span id="checklist-today-label" class="checklist-today-label"></span>
+      </div>
+
+      <div class="checklist-dino-track">
+        <div class="checklist-dino-path"></div>
+        <div class="checklist-dino" id="checklist-dino">🦕</div>
+      </div>
+      <div id="checklist-progress" class="checklist-progress"></div>
+
+      <div class="checklist-scope-toggle">
+        <button type="button" class="checklist-scope-btn active" id="checklist-scope-now">Gerade jetzt</button>
+        <button type="button" class="checklist-scope-btn" id="checklist-scope-all">Ganzer Tag</button>
+      </div>
+
+      <div id="checklist-blocks"></div>
+      <p style="font-size:12px;margin-top:10px" class="checklist-scene-hint">
+        Antippen zum Abhaken. Um Mitternacht sind alle Punkte wieder frei.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="checklist-header-row">
+        <h2>Verlauf</h2>
+      </div>
+      <div class="checklist-period-toggle">
+        <button type="button" class="checklist-period-btn active" data-period="woche">Woche</button>
+        <button type="button" class="checklist-period-btn" data-period="monat">Monat</button>
+        <button type="button" class="checklist-period-btn" data-period="jahr">Jahr</button>
+      </div>
+      <div class="week-header" style="margin-top:10px">
+        <button type="button" class="year-btn" id="checklist-period-prev">‹</button>
+        <div class="week-label" id="checklist-period-label">–</div>
+        <button type="button" class="year-btn" id="checklist-period-next">›</button>
+      </div>
+      <div id="checklist-history"></div>
+    </div>
+
+    <div class="card">
+      <h2>Aufgaben verwalten</h2>
+      <div id="checklist-manage-list"></div>
+
+      <p style="font-size:12px;color:var(--color-text-muted);margin-top:10px">
+        Auf eine Aufgabe oben tippen, um sie hier zu bearbeiten oder zu löschen.
+      </p>
+
+      <div class="field" style="margin-top:10px">
+        <label for="checklist-block-select">Block</label>
+        <select id="checklist-block-select">
+          <option value="morgen">Morgen</option>
+          <option value="nachmittag">Nachmittag</option>
+          <option value="abend">Abend</option>
+          <option value="sonntag">Sonntag (Taschengeld-Tag)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="checklist-label-input">Aufgabe</label>
+        <input type="text" id="checklist-label-input" placeholder="z. B. Zähneputzen" />
+      </div>
+      <div class="field">
+        <label>Icon</label>
+        <button type="button" class="checklist-icon-picker-btn" id="checklist-icon-btn">⭐</button>
+        <div class="checklist-icon-grid hidden" id="checklist-icon-grid"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="checklist-task-submit">Speichern</button>
+        <button class="btn btn-secondary" id="checklist-task-delete">Löschen</button>
+        <button class="btn btn-secondary" id="checklist-task-new">Neue Aufgabe</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ---------- Anna View ---------- -->
   <div class="view hidden" id="view-anna">
 
@@ -284,12 +361,26 @@
   <div class="view hidden" id="view-admin">
     <div class="card">
       <h2>Datenexport</h2>
-      <p style="font-size:13px;color:var(--color-text-muted)">Lade die Daten als CSV-Datei herunter, z.B. zum Öffnen in Excel.</p>
+      <p style="font-size:13px;color:var(--color-text-muted)">Lade alle Daten der App in einer einzigen CSV-Datei herunter, z.B. zum Öffnen in Excel. Jeder Bereich der App (Board, Einkauf, Stundenpläne, Anna, Checkliste) steht darin als eigener Abschnitt.</p>
       <div class="field" style="margin-top:14px">
+        <button class="btn" id="export-all-btn">⬇️ Alle Daten als CSV exportieren</button>
+      </div>
+
+      <p style="font-size:12px;color:var(--color-text-muted);margin-top:16px">Oder einzeln:</p>
+      <div class="field" style="margin-top:6px">
         <button class="btn btn-secondary" id="board-export-btn">📋 Board als CSV exportieren</button>
       </div>
       <div class="field">
+        <button class="btn btn-secondary" id="einkauf-export-btn">🛒 Einkaufsliste als CSV exportieren</button>
+      </div>
+      <div class="field">
+        <button class="btn btn-secondary" id="stundenplaene-export-btn">🕒 Stundenpläne als CSV exportieren</button>
+      </div>
+      <div class="field">
         <button class="btn btn-secondary" id="anna-export-btn">🧹 Anna als CSV exportieren</button>
+      </div>
+      <div class="field">
+        <button class="btn btn-secondary" id="checkliste-export-btn">✅ Checkliste als CSV exportieren</button>
       </div>
     </div>
   </div>
@@ -313,6 +404,10 @@
     <button class="nav-btn" data-view="stundenplaene">
       <span class="nav-icon">🕒</span>
       <span>Stundenpläne</span>
+    </button>
+    <button class="nav-btn" data-view="checkliste">
+      <span class="nav-icon">✅</span>
+      <span>Checkliste</span>
     </button>
     <button class="nav-btn" data-view="anna">
       <span class="nav-icon">🧹</span>

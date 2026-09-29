@@ -68,7 +68,32 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.8**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.5.0**.
+
+## Update auf Version 0.5.0
+
+**Neue Datenbank-Tabellen nötig:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `migration-v6.sql` einfügen → "Run". Einmalig, zusätzlich zu den bisherigen Migrationen. Das legt die Checkliste an und trägt gleich die vorgeschlagenen Aufgaben ein.
+
+**Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
+
+Was neu ist:
+
+### 1. Neuer Reiter "Checkliste"
+Eine gemeinsame Tages-Checkliste für Henry, George und Oliver zusammen (kein eigener Reiter pro Kind):
+- **Morgen / Nachmittag / Abend** an Wochentagen (Mo-Fr), jeweils farblich umrahmt. Standardmäßig wird nur der gerade passende Block gezeigt ("Gerade jetzt"), über den Umschalter "Ganzer Tag" lässt sich auch alles sehen.
+- Jede Aufgabe hat ein großes, kindgerechtes Icon (die Kinder können ja noch nicht lesen). Antippen hakt ab und streicht durch, nochmal antippen macht es rückgängig.
+- Ein kleiner Dino wandert auf einer Fortschrittsleiste je nach erledigten Punkten, dazu ändert sich der Hintergrund farblich je nach Tageszeit (warmes Gelb morgens, Blau nachmittags, Lila abends).
+- **Um Mitternacht sind automatisch wieder alle Punkte offen** – dafür ist nichts weiter nötig, das ergibt sich einfach daraus, dass jeder Haken an das Datum gebunden ist.
+- **Samstag ist frei** – keine Checkliste. **Sonntag** gibt es stattdessen eine einzelne Taschengeld-Aufgabe ("1€ in die Spardose, 1€ zum Ausgeben").
+- **Verlauf-Karte** darunter mit Woche/Monat/Jahr-Ansicht: die Wochenansicht zeigt Balken für Mo-Fr plus ein Sparschwein-Symbol für Sonntag, und wenn eine ganze Woche (Mo-Fr) komplett geschafft wurde, erscheint "🎉 Woche geschafft – 2€ Taschengeld verdient!". Monat zeigt eine kleine Kalender-Übersicht, Jahr eine Monats-für-Monats-Zusammenfassung.
+- **Aufgaben verwalten** (ganz unten): Eltern können neue Aufgaben hinzufügen oder bestehende umbenennen, dem Block zuordnen, das Icon ändern (über eine Icon-Auswahl mit rund 30 kindgerechten Symbolen) oder löschen. Eine Vorbelegung mit den von euch genannten Aufgaben ist schon dabei (per `migration-v6.sql`).
+
+### 2. CSV-Export im Admin-Bereich
+- Neuer Button **"Alle Daten als CSV exportieren"**: eine einzige CSV-Datei mit allen Bereichen der App (Board, Einkaufsliste, Stundenpläne, Anna, Checkliste), jeweils als eigener Abschnitt markiert (`=== BOARD ===` usw.) – genau wie die Reiter in der App.
+- Daneben weiterhin einzelne Export-Buttons pro Bereich, falls nur ein Teil gebraucht wird.
+
+### 3. Kalender-Bug behoben
+Mehrtägige Termine (z.B. "Jan Rhinotrip" über 3 Tage) wurden bisher nur am ersten Tag angezeigt. Jetzt erscheinen sie an jedem ihrer Tage, zusätzlich mit einer kleinen "(Tag 2/3)"-Kennzeichnung zur Orientierung.
 
 ## Update auf Version 0.4.8
 

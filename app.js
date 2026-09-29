@@ -50,6 +50,7 @@ async function onLoggedIn(user) {
   initEinkaufsliste();
   initKalender();
   initStundenplaene();
+  initChecklist();
   initAnna();
   subscribeRealtime();
   startAutoRefresh();
@@ -109,6 +110,7 @@ const viewTitles = {
   einkaufsliste: 'Einkaufsliste',
   kalender: 'Kalender',
   stundenplaene: 'Stundenpläne',
+  checkliste: 'Checkliste',
   anna: 'Anna',
   admin: 'Admin',
 };
@@ -137,6 +139,8 @@ function subscribeRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'anna_payments' }, loadAnna)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'anna_settings' }, loadAnna)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kids_schedule' }, loadStundenplaene)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_tasks' }, loadChecklist)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_completions' }, loadChecklist)
     .subscribe();
 }
 
@@ -157,6 +161,7 @@ function refreshAllViews() {
   if (editingAnnaId === null) loadAnna();
   loadKalender();
   loadStundenplaene();
+  if (editingChecklistTaskId === null) loadChecklist();
 }
 
 function startAutoRefresh() {
@@ -667,12 +672,12 @@ async function saveBoardEdit(id) {
   loadBoard();
 }
 
-document.getElementById('board-export-btn').addEventListener('click', async () => {
+async function boardCsvRows() {
   const { data, error } = await sb.from('board_items').select('*').order('created_at', { ascending: true });
-  if (error) { alert('Fehler: ' + error.message); return; }
+  if (error) { alert('Fehler: ' + error.message); return []; }
   const priorityLabels = { dringend: 'Dringend', mittel: 'Mittel', niedrig: 'Nicht wichtig' };
   const rows = [['Typ', 'Inhalt', 'Für', 'Priorität', 'Fällig am', 'Erstellt von', 'Erstellt am', 'Erledigt', 'Erledigt von', 'Erledigt am']];
-  data.forEach((i) => rows.push([
+  (data || []).forEach((i) => rows.push([
     i.type === 'todo' ? 'ToDo' : 'Notiz',
     i.content,
     i.assigned_to ? displayNameFor(i.assigned_to) : 'Beide',
@@ -684,7 +689,93 @@ document.getElementById('board-export-btn').addEventListener('click', async () =
     i.done_by ? displayNameFor(i.done_by) : '',
     i.done_at ? formatDateTimeDE(i.done_at) : '',
   ]));
-  downloadCSV('board-export.csv', rows);
+  return rows;
+}
+
+async function einkaufCsvRows() {
+  const { data } = await sb.from('shopping_items').select('*').order('created_at', { ascending: true });
+  const rows = [['Artikel', 'Erledigt', 'Erstellt von', 'Erstellt am', 'Erledigt von', 'Erledigt am']];
+  (data || []).forEach((s) => rows.push([
+    s.content,
+    s.is_done ? 'Ja' : 'Nein',
+    displayNameFor(s.created_by),
+    formatDateTimeDE(s.created_at),
+    s.done_by ? displayNameFor(s.done_by) : '',
+    s.done_at ? formatDateTimeDE(s.done_at) : '',
+  ]));
+  return rows;
+}
+
+async function stundenplaeneCsvRows() {
+  const { data } = await sb.from('kids_schedule').select('*');
+  const sorted = (data || []).slice().sort((a, b) =>
+    a.child_name.localeCompare(b.child_name) || (a.weekday - b.weekday) || (a.start_time || '').localeCompare(b.start_time || '')
+  );
+  const rows = [['Kind', 'Wochentag', 'Aktivität', 'Von', 'Bis']];
+  sorted.forEach((k) => rows.push([
+    k.child_name,
+    WEEKDAY_NAMES[k.weekday] || '',
+    k.label || '',
+    k.start_time ? k.start_time.slice(0, 5) : '',
+    k.end_time ? k.end_time.slice(0, 5) : '',
+  ]));
+  return rows;
+}
+
+async function checklisteCsvRows() {
+  const [tasksRes, completionsRes] = await Promise.all([
+    sb.from('checklist_tasks').select('*'),
+    sb.from('checklist_completions').select('*').order('completion_date', { ascending: true }),
+  ]);
+  const tasksById = {};
+  (tasksRes.data || []).forEach((t) => { tasksById[t.id] = t; });
+  const blockLabels = { morgen: 'Morgen', nachmittag: 'Nachmittag', abend: 'Abend', sonntag: 'Sonntag (Taschengeld)' };
+  const rows = [['Datum', 'Block', 'Aufgabe', 'Icon', 'Erledigt von']];
+  (completionsRes.data || []).forEach((c) => {
+    const t = tasksById[c.task_id];
+    rows.push([
+      formatDateDE(c.completion_date),
+      t ? (blockLabels[t.block] || t.block) : '',
+      t ? t.label : '(gelöschte Aufgabe)',
+      t ? t.icon : '',
+      c.completed_by ? displayNameFor(c.completed_by) : '',
+    ]);
+  });
+  return rows;
+}
+
+document.getElementById('board-export-btn').addEventListener('click', async () => {
+  downloadCSV('board-export.csv', await boardCsvRows());
+});
+
+document.getElementById('einkauf-export-btn').addEventListener('click', async () => {
+  downloadCSV('einkaufsliste-export.csv', await einkaufCsvRows());
+});
+
+document.getElementById('stundenplaene-export-btn').addEventListener('click', async () => {
+  downloadCSV('stundenplaene-export.csv', await stundenplaeneCsvRows());
+});
+
+document.getElementById('checkliste-export-btn').addEventListener('click', async () => {
+  downloadCSV('checkliste-export.csv', await checklisteCsvRows());
+});
+
+document.getElementById('export-all-btn').addEventListener('click', async () => {
+  const [board, einkauf, stundenplaene, anna, checkliste] = await Promise.all([
+    boardCsvRows(), einkaufCsvRows(), stundenplaeneCsvRows(), annaCsvRows(), checklisteCsvRows(),
+  ]);
+  const rows = [];
+  const addSection = (title, sectionRows) => {
+    rows.push([`=== ${title} ===`]);
+    sectionRows.forEach((r) => rows.push(r));
+    rows.push([]);
+  };
+  addSection('BOARD', board);
+  addSection('EINKAUFSLISTE', einkauf);
+  addSection('STUNDENPLÄNE', stundenplaene);
+  addSection('ANNA', anna);
+  addSection('CHECKLISTE', checkliste);
+  downloadCSV('hageney-family-app-export.csv', rows);
 });
 
 // ============================================================
@@ -1168,7 +1259,7 @@ document.getElementById('anna-pay-submit').addEventListener('click', async () =>
   loadAnna();
 });
 
-document.getElementById('anna-export-btn').addEventListener('click', async () => {
+async function annaCsvRows() {
   const [entriesRes, paymentsRes] = await Promise.all([
     sb.from('anna_entries').select('*').order('work_date', { ascending: true }),
     sb.from('anna_payments').select('*').order('payment_date', { ascending: true }),
@@ -1180,7 +1271,11 @@ document.getElementById('anna-export-btn').addEventListener('click', async () =>
   (paymentsRes.data || []).forEach((p) => rows.push([
     'Zahlung', formatDateDE(p.payment_date), '', '', p.amount, p.tip, p.note || '', displayNameFor(p.created_by),
   ]));
-  downloadCSV('anna-export.csv', rows);
+  return rows;
+}
+
+document.getElementById('anna-export-btn').addEventListener('click', async () => {
+  downloadCSV('anna-export.csv', await annaCsvRows());
 });
 
 // ============================================================
@@ -1219,6 +1314,10 @@ function startOfDay(d) {
   return x;
 }
 
+function localDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function mondayOfWeek(date) {
   const d = startOfDay(date);
   const isoDay = d.getDay() === 0 ? 7 : d.getDay();
@@ -1254,17 +1353,42 @@ function renderKalenderWeek() {
     const dayEnd = new Date(day);
     dayEnd.setHours(23, 59, 59, 999);
 
+    const dayKey = localDateKey(day);
+
     const rows = kalenderEventsCache
       .filter((e) => {
+        // Überlappungsprüfung statt nur Start-Datum, damit mehrtägige
+        // Termine (z.B. "Jan Rhinotrip" über 3 Tage) an JEDEM ihrer Tage
+        // erscheinen, nicht nur am ersten. Ganztägige Termine werden über
+        // Kalendertag-Strings verglichen (nicht über lokale Uhrzeiten),
+        // da die API sie bewusst auf UTC-Mitternacht normalisiert.
+        if (e.allDay) {
+          const startKey = e.start.slice(0, 10);
+          const endKey = e.end.slice(0, 10); // exklusiv
+          return dayKey >= startKey && dayKey < endKey;
+        }
         const s = new Date(e.start);
-        return s >= day && s <= dayEnd;
+        const en = new Date(e.end);
+        return s <= dayEnd && en > day;
       })
-      .map((e) => ({
-        time: e.allDay ? 'ganztägig' : new Date(e.start).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-        title: e.title,
-        loc: e.location,
-        sortKey: e.allDay ? '00:00' : new Date(e.start).toISOString().slice(11, 16),
-      }))
+      .map((e) => {
+        let title = e.title;
+        if (e.allDay) {
+          const startKey = e.start.slice(0, 10);
+          const endKey = e.end.slice(0, 10);
+          const totalDays = Math.round((new Date(endKey) - new Date(startKey)) / 86400000);
+          if (totalDays > 1) {
+            const dayIndex = Math.round((new Date(dayKey) - new Date(startKey)) / 86400000) + 1;
+            title += ` (Tag ${Math.min(Math.max(dayIndex, 1), totalDays)}/${totalDays})`;
+          }
+        }
+        return {
+          time: e.allDay ? 'ganztägig' : new Date(e.start).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+          title,
+          loc: e.location,
+          sortKey: e.allDay ? '00:00' : e.start.slice(11, 16),
+        };
+      })
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     const holiday = holidayForDate(day);
@@ -1611,6 +1735,522 @@ document.getElementById('kids-schedule-new').addEventListener('click', () => {
   document.getElementById('kids-label').value = '';
   document.getElementById('kids-start-time').value = '';
   document.getElementById('kids-end-time').value = '';
+});
+
+// ============================================================
+// CHECKLISTE (gemeinsame Tages-Checkliste für alle Kinder)
+// Mo-Fr: Morgen-/Nachmittags-/Abendblock. Sa: frei. So: Taschengeld.
+// ============================================================
+
+const CHECKLIST_BLOCKS = [
+  { key: 'morgen', label: 'Morgen' },
+  { key: 'nachmittag', label: 'Nachmittag' },
+  { key: 'abend', label: 'Abend' },
+  { key: 'sonntag', label: 'Sonntag (Taschengeld)' },
+];
+const CHECKLIST_WEEKDAY_BLOCK_KEYS = ['morgen', 'nachmittag', 'abend'];
+const CHECKLIST_SCENE_TITLE = { morgen: '☀️ Guten Morgen!', nachmittag: '🌤️ Guten Nachmittag!', abend: '🌙 Guten Abend!' };
+
+const CHECKLIST_ICON_CHOICES = [
+  '👕', '🥣', '🪥', '🎒', '🧹', '🍱', '📝', '👔', '🛁', '🌙', '🧺', '🛏️',
+  '🦷', '🧦', '🧴', '🚿', '🍎', '🥪', '📚', '✏️', '🧸', '🐶', '🐱', '⭐',
+  '✅', '🧼', '🖍️', '🎨', '🧣', '🥾', '🧩', '🚲', '🐷', '💶',
+];
+
+let checklistTasksCache = [];
+let checklistAllCompletionsCache = [];
+let checklistCompletionsCache = []; // heutige Haken
+let editingChecklistTaskId = null;
+let checklistPendingIcon = '⭐';
+let checklistPickerVisible = false;
+let checklistShowAll = false; // false = "Gerade jetzt", true = "Ganzer Tag"
+let checklistHistoryPeriod = 'woche';
+let checklistHistoryOffset = 0;
+
+function initChecklist() {
+  loadChecklist();
+}
+
+async function loadChecklist() {
+  const todayKey = localDateKey(new Date());
+  const [tasksRes, completionsRes] = await Promise.all([
+    sb.from('checklist_tasks').select('*'),
+    sb.from('checklist_completions').select('*'),
+  ]);
+  const blockIdx = (k) => CHECKLIST_BLOCKS.findIndex((b) => b.key === k);
+  checklistTasksCache = (tasksRes.data || []).slice().sort((a, b) => {
+    const bi = blockIdx(a.block) - blockIdx(b.block);
+    return bi !== 0 ? bi : (a.sort_order || 0) - (b.sort_order || 0);
+  });
+  checklistAllCompletionsCache = completionsRes.data || [];
+  checklistCompletionsCache = checklistAllCompletionsCache.filter((c) => c.completion_date === todayKey);
+  renderChecklist();
+  renderChecklistHistory();
+}
+
+function isChecklistDone(taskId) {
+  return checklistCompletionsCache.some((c) => c.task_id === taskId);
+}
+
+function currentChecklistBlock() {
+  const h = new Date().getHours();
+  if (h < 11) return 'morgen';
+  if (h < 17) return 'nachmittag';
+  return 'abend';
+}
+
+async function toggleChecklistTask(taskId) {
+  const todayKey = localDateKey(new Date());
+  const existing = checklistCompletionsCache.find((c) => c.task_id === taskId);
+  if (existing) {
+    const { error } = await sb.from('checklist_completions').delete().eq('id', existing.id);
+    if (error) { alert('Fehler: ' + error.message); return; }
+  } else {
+    const { error } = await sb.from('checklist_completions').insert({
+      task_id: taskId, completion_date: todayKey, completed_by: currentUser.id,
+    });
+    if (error) { alert('Fehler: ' + error.message); return; }
+  }
+  loadChecklist();
+}
+
+function applyChecklistScene(mode) {
+  const card = document.getElementById('checklist-scene-card');
+  card.classList.remove('checklist-scene-morgen', 'checklist-scene-nachmittag', 'checklist-scene-abend', 'checklist-scene-wochenende', 'checklist-scene-sonntag');
+  card.classList.add('checklist-scene-' + mode);
+}
+
+function renderChecklist() {
+  const container = document.getElementById('checklist-blocks');
+  if (!container) return;
+
+  const now = new Date();
+  const dayLabel = now.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  document.getElementById('checklist-today-label').textContent = dayLabel;
+  const dow = now.getDay(); // 0 = Sonntag ... 6 = Samstag
+  const dinoTrack = document.querySelector('.checklist-dino-track');
+  const scopeToggle = document.querySelector('.checklist-scope-toggle');
+  const hint = document.querySelector('.checklist-scene-hint');
+
+  if (dow === 6) {
+    // Samstag: frei, keine Checkliste
+    applyChecklistScene('wochenende');
+    document.getElementById('checklist-scene-title').textContent = '🎈 Samstag ist frei!';
+    document.getElementById('checklist-progress').textContent = '';
+    dinoTrack.classList.add('hidden');
+    scopeToggle.classList.add('hidden');
+    hint.textContent = 'Am Wochenende gibt es keine Checkliste – geniesst den Tag!';
+    container.innerHTML = '';
+    renderChecklistManage();
+    return;
+  }
+
+  if (dow === 0) {
+    // Sonntag: Taschengeld-Aufgabe
+    applyChecklistScene('sonntag');
+    document.getElementById('checklist-scene-title').textContent = '🐷 Taschengeld-Tag';
+    dinoTrack.classList.add('hidden');
+    scopeToggle.classList.add('hidden');
+    hint.textContent = 'Nicht vergessen: 1€ wandert in die Spardose!';
+
+    const tasks = checklistTasksCache.filter((t) => t.block === 'sonntag');
+    const done = tasks.filter((t) => isChecklistDone(t.id)).length;
+    document.getElementById('checklist-progress').textContent = tasks.length
+      ? `${done} von ${tasks.length} erledigt ${done === tasks.length ? '🎉' : ''}`
+      : '';
+
+    let html = '<div class="checklist-block checklist-block-sonntag"><div class="checklist-items">';
+    if (tasks.length === 0) {
+      html += '<div class="empty-hint">Noch keine Taschengeld-Aufgabe angelegt.</div>';
+    } else {
+      tasks.forEach((t) => {
+        const d = isChecklistDone(t.id);
+        html += `<button type="button" class="checklist-item${d ? ' is-done' : ''}" data-id="${t.id}">
+          <span class="checklist-item-icon">${escapeHtml(t.icon)}</span>
+          <span class="checklist-item-label">${escapeHtml(t.label)}</span>
+          <span class="checklist-item-check">✓</span>
+        </button>`;
+      });
+    }
+    html += '</div></div>';
+    container.innerHTML = html;
+    container.querySelectorAll('.checklist-item').forEach((btn) => {
+      btn.addEventListener('click', () => toggleChecklistTask(btn.dataset.id));
+    });
+    renderChecklistManage();
+    return;
+  }
+
+  // Mo-Fr: normale Checkliste
+  dinoTrack.classList.remove('hidden');
+  scopeToggle.classList.remove('hidden');
+  hint.textContent = 'Antippen zum Abhaken. Um Mitternacht sind alle Punkte wieder frei.';
+
+  const nowBlock = currentChecklistBlock();
+  applyChecklistScene(nowBlock);
+  document.getElementById('checklist-scene-title').textContent = CHECKLIST_SCENE_TITLE[nowBlock] || 'Checkliste';
+
+  const visibleBlocks = checklistShowAll
+    ? CHECKLIST_BLOCKS.filter((b) => CHECKLIST_WEEKDAY_BLOCK_KEYS.includes(b.key))
+    : CHECKLIST_BLOCKS.filter((b) => b.key === nowBlock);
+
+  const visibleTasks = checklistTasksCache.filter((t) => visibleBlocks.some((b) => b.key === t.block));
+  const total = visibleTasks.length;
+  const done = visibleTasks.filter((t) => isChecklistDone(t.id)).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('checklist-dino').style.left = pct + '%';
+  document.getElementById('checklist-progress').textContent = total > 0
+    ? `${done} von ${total} geschafft ${done === total ? '🎉' : ''}`
+    : 'Keine Aufgaben in diesem Bereich.';
+
+  let html = '';
+  visibleBlocks.forEach((block) => {
+    const tasks = checklistTasksCache.filter((t) => t.block === block.key);
+    html += `<div class="checklist-block checklist-block-${block.key}">
+      <div class="checklist-block-title">${escapeHtml(block.label)}</div>
+      <div class="checklist-items">`;
+    if (tasks.length === 0) {
+      html += '<div class="empty-hint">Noch keine Aufgaben.</div>';
+    } else {
+      tasks.forEach((t) => {
+        const d = isChecklistDone(t.id);
+        html += `<button type="button" class="checklist-item${d ? ' is-done' : ''}" data-id="${t.id}">
+          <span class="checklist-item-icon">${escapeHtml(t.icon)}</span>
+          <span class="checklist-item-label">${escapeHtml(t.label)}</span>
+          <span class="checklist-item-check">✓</span>
+        </button>`;
+      });
+    }
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+
+  container.querySelectorAll('.checklist-item').forEach((btn) => {
+    btn.addEventListener('click', () => toggleChecklistTask(btn.dataset.id));
+  });
+
+  renderChecklistManage();
+}
+
+document.getElementById('checklist-scope-now').addEventListener('click', () => {
+  checklistShowAll = false;
+  document.getElementById('checklist-scope-now').classList.add('active');
+  document.getElementById('checklist-scope-all').classList.remove('active');
+  renderChecklist();
+});
+
+document.getElementById('checklist-scope-all').addEventListener('click', () => {
+  checklistShowAll = true;
+  document.getElementById('checklist-scope-all').classList.add('active');
+  document.getElementById('checklist-scope-now').classList.remove('active');
+  renderChecklist();
+});
+
+// ------------------------------------------------------------
+// Verlauf (Woche / Monat / Jahr) + Taschengeld-Belohnung
+// ------------------------------------------------------------
+
+function checklistWeekdayTaskCount() {
+  return checklistTasksCache.filter((t) => CHECKLIST_WEEKDAY_BLOCK_KEYS.includes(t.block)).length;
+}
+
+function checklistCompletionCountForDate(dateKey) {
+  const weekdayTaskIds = new Set(
+    checklistTasksCache.filter((t) => CHECKLIST_WEEKDAY_BLOCK_KEYS.includes(t.block)).map((t) => t.id)
+  );
+  const doneIds = new Set(
+    checklistAllCompletionsCache.filter((c) => c.completion_date === dateKey).map((c) => c.task_id)
+  );
+  let count = 0;
+  doneIds.forEach((id) => { if (weekdayTaskIds.has(id)) count++; });
+  return count;
+}
+
+function checklistDayComplete(dateKey) {
+  const total = checklistWeekdayTaskCount();
+  return total > 0 && checklistCompletionCountForDate(dateKey) >= total;
+}
+
+function checklistWeekComplete(monday) {
+  const total = checklistWeekdayTaskCount();
+  if (total === 0) return false;
+  for (let i = 0; i < 5; i++) { // Mo-Fr
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    if (!checklistDayComplete(localDateKey(d))) return false;
+  }
+  return true;
+}
+
+function renderChecklistHistory() {
+  if (checklistHistoryPeriod === 'woche') renderChecklistHistoryWeek();
+  else if (checklistHistoryPeriod === 'monat') renderChecklistHistoryMonth();
+  else renderChecklistHistoryYear();
+}
+
+function renderChecklistHistoryWeek() {
+  const today = startOfDay(new Date());
+  const monday = mondayOfWeek(today);
+  monday.setDate(monday.getDate() + checklistHistoryOffset * 7);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  document.getElementById('checklist-period-label').textContent = `${formatDateDE(monday)} – ${formatDateDE(friday)}`;
+
+  const total = checklistWeekdayTaskCount();
+  const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+  let bars = '';
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const key = localDateKey(d);
+    const isFuture = d > today;
+    const doneCount = isFuture ? 0 : checklistCompletionCountForDate(key);
+    const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+    const complete = !isFuture && total > 0 && doneCount >= total;
+    bars += `<div class="checklist-history-day${complete ? ' is-complete' : ''}${isFuture ? ' is-future' : ''}">
+      <div class="checklist-history-bar-track"><div class="checklist-history-bar-fill" style="height:${pct}%"></div></div>
+      <div class="checklist-history-day-label">${dayNames[i]}</div>
+    </div>`;
+  }
+
+  // Sonntags-Taschengeld dieser Woche (informativ, zählt nicht zur 2€-Regel)
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const sundayTaskIds = checklistTasksCache.filter((t) => t.block === 'sonntag').map((t) => t.id);
+  const sundayDone = sundayTaskIds.length > 0 && sunday <= today
+    && sundayTaskIds.every((id) => checklistAllCompletionsCache.some((c) => c.task_id === id && c.completion_date === localDateKey(sunday)));
+
+  const weekOver = friday <= today;
+  const complete = weekOver && checklistWeekComplete(monday);
+
+  let html = `<div class="checklist-history-week">${bars}
+    <div class="checklist-history-day checklist-history-piggy${sundayDone ? ' is-complete' : ''}${sunday > today ? ' is-future' : ''}">
+      <div class="checklist-history-piggy-icon">🐷</div>
+      <div class="checklist-history-day-label">So</div>
+    </div>
+  </div>`;
+  if (complete) {
+    html += '<div class="checklist-reward-badge">🎉 Woche geschafft – 2€ Taschengeld verdient!</div>';
+  } else if (weekOver) {
+    html += '<div class="checklist-history-summary">Diese Woche wurde nicht komplett geschafft.</div>';
+  }
+  document.getElementById('checklist-history').innerHTML = html;
+}
+
+function renderChecklistHistoryMonth() {
+  const now = new Date();
+  const viewDate = new Date(now.getFullYear(), now.getMonth() + checklistHistoryOffset, 1);
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  document.getElementById('checklist-period-label').textContent = viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+
+  const today = startOfDay(new Date());
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  let completeDays = 0;
+  let weekdayCount = 0;
+  let cells = '';
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // 0 = Montag
+  for (let i = 0; i < firstWeekday; i++) cells += '<div class="checklist-month-cell is-empty"></div>';
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const isWeekendDay = d.getDay() === 0 || d.getDay() === 6;
+    const isFuture = d > today;
+    const complete = !isWeekendDay && !isFuture && checklistDayComplete(localDateKey(d));
+    if (!isWeekendDay) {
+      weekdayCount++;
+      if (complete) completeDays++;
+    }
+    cells += `<div class="checklist-month-cell${complete ? ' is-complete' : ''}${isFuture ? ' is-future' : ''}${isWeekendDay ? ' is-weekend' : ''}">${day}</div>`;
+  }
+
+  let rewardWeeks = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    if (d.getDay() !== 1) continue; // nur Montage
+    const friday = new Date(d);
+    friday.setDate(d.getDate() + 4);
+    if (friday > today) continue;
+    if (checklistWeekComplete(d)) rewardWeeks++;
+  }
+
+  document.getElementById('checklist-history').innerHTML = `
+    <div class="checklist-month-grid">${cells}</div>
+    <div class="checklist-history-summary">${completeDays} von ${weekdayCount} Wochentagen komplett geschafft</div>
+    ${rewardWeeks > 0 ? `<div class="checklist-reward-summary">🎉 ${rewardWeeks} komplette Woche${rewardWeeks === 1 ? '' : 'n'} = ${rewardWeeks * 2}€ Taschengeld verdient</div>` : ''}
+  `;
+}
+
+function renderChecklistHistoryYear() {
+  const now = new Date();
+  const year = now.getFullYear() + checklistHistoryOffset;
+  document.getElementById('checklist-period-label').textContent = String(year);
+
+  const today = startOfDay(new Date());
+  let rows = '';
+
+  for (let m = 0; m < 12; m++) {
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+    let completeDays = 0;
+    let weekdayCount = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, m, day);
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      if (d > today) continue;
+      weekdayCount++;
+      if (checklistDayComplete(localDateKey(d))) completeDays++;
+    }
+    const monthName = new Date(year, m, 1).toLocaleDateString('de-DE', { month: 'long' });
+    rows += `<div class="checklist-history-row"><span>${monthName}</span><span>${completeDays}/${weekdayCount} Tage</span></div>`;
+  }
+
+  let yearRewardWeeks = 0;
+  const cursor = new Date(year, 0, 1);
+  while (cursor.getDay() !== 1) cursor.setDate(cursor.getDate() - 1);
+  while (cursor.getFullYear() <= year) {
+    const weekMonday = new Date(cursor);
+    const weekFriday = new Date(weekMonday);
+    weekFriday.setDate(weekMonday.getDate() + 4);
+    if (weekMonday.getFullYear() === year || weekFriday.getFullYear() === year) {
+      if (weekFriday <= today && checklistWeekComplete(weekMonday)) yearRewardWeeks++;
+    }
+    cursor.setDate(cursor.getDate() + 7);
+    if (cursor.getFullYear() > year) break;
+  }
+
+  document.getElementById('checklist-history').innerHTML = `
+    <div class="checklist-history-months">${rows}</div>
+    <div class="checklist-reward-summary">🎉 ${yearRewardWeeks} komplette Woche${yearRewardWeeks === 1 ? '' : 'n'} = ${yearRewardWeeks * 2}€ Taschengeld verdient</div>
+  `;
+}
+
+document.querySelectorAll('.checklist-period-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.checklist-period-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    checklistHistoryPeriod = btn.dataset.period;
+    checklistHistoryOffset = 0;
+    renderChecklistHistory();
+  });
+});
+
+document.getElementById('checklist-period-prev').addEventListener('click', () => {
+  checklistHistoryOffset -= 1;
+  renderChecklistHistory();
+});
+
+document.getElementById('checklist-period-next').addEventListener('click', () => {
+  checklistHistoryOffset = Math.min(checklistHistoryOffset + 1, 0);
+  renderChecklistHistory();
+});
+
+// ------------------------------------------------------------
+// Aufgaben verwalten (Eltern)
+// ------------------------------------------------------------
+
+function renderChecklistManage() {
+  const container = document.getElementById('checklist-manage-list');
+  if (!container) return;
+
+  let html = '';
+  CHECKLIST_BLOCKS.forEach((block) => {
+    const tasks = checklistTasksCache.filter((t) => t.block === block.key);
+    if (tasks.length === 0) return;
+    html += `<div class="checklist-manage-group-title">${escapeHtml(block.label)}</div>`;
+    tasks.forEach((t) => {
+      html += `<div class="checklist-manage-row" data-id="${t.id}">
+        <span class="checklist-manage-icon">${escapeHtml(t.icon)}</span>
+        <span class="checklist-manage-label">${escapeHtml(t.label)}</span>
+      </div>`;
+    });
+  });
+  if (!html) html = '<div class="empty-hint">Noch keine Aufgaben angelegt.</div>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('.checklist-manage-row').forEach((row) => {
+    row.addEventListener('click', () => {
+      const task = checklistTasksCache.find((t) => t.id === row.dataset.id);
+      if (!task) return;
+      fillChecklistFormEdit(task);
+      document.getElementById('checklist-block-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+}
+
+function renderChecklistIconGrid() {
+  const grid = document.getElementById('checklist-icon-grid');
+  grid.innerHTML = CHECKLIST_ICON_CHOICES.map((ic) =>
+    `<button type="button" class="checklist-icon-choice${ic === checklistPendingIcon ? ' is-selected' : ''}" data-icon="${ic}">${ic}</button>`
+  ).join('');
+  grid.querySelectorAll('.checklist-icon-choice').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      checklistPendingIcon = btn.dataset.icon;
+      document.getElementById('checklist-icon-btn').textContent = checklistPendingIcon;
+      checklistPickerVisible = false;
+      grid.classList.add('hidden');
+    });
+  });
+}
+
+document.getElementById('checklist-icon-btn').addEventListener('click', () => {
+  checklistPickerVisible = !checklistPickerVisible;
+  const grid = document.getElementById('checklist-icon-grid');
+  if (checklistPickerVisible) renderChecklistIconGrid();
+  grid.classList.toggle('hidden', !checklistPickerVisible);
+});
+
+function fillChecklistFormNew() {
+  editingChecklistTaskId = null;
+  document.getElementById('checklist-block-select').value = 'morgen';
+  document.getElementById('checklist-label-input').value = '';
+  checklistPendingIcon = '⭐';
+  document.getElementById('checklist-icon-btn').textContent = checklistPendingIcon;
+  document.getElementById('checklist-icon-grid').classList.add('hidden');
+  checklistPickerVisible = false;
+}
+
+function fillChecklistFormEdit(task) {
+  editingChecklistTaskId = task.id;
+  document.getElementById('checklist-block-select').value = task.block;
+  document.getElementById('checklist-label-input').value = task.label;
+  checklistPendingIcon = task.icon;
+  document.getElementById('checklist-icon-btn').textContent = checklistPendingIcon;
+  document.getElementById('checklist-icon-grid').classList.add('hidden');
+  checklistPickerVisible = false;
+}
+
+document.getElementById('checklist-task-submit').addEventListener('click', async () => {
+  const block = document.getElementById('checklist-block-select').value;
+  const label = document.getElementById('checklist-label-input').value.trim();
+  const icon = checklistPendingIcon;
+  if (!label) { alert('Bitte eine Bezeichnung eintragen.'); return; }
+
+  let error;
+  if (editingChecklistTaskId) {
+    ({ error } = await sb.from('checklist_tasks').update({ block, label, icon }).eq('id', editingChecklistTaskId));
+  } else {
+    const maxSort = Math.max(0, ...checklistTasksCache.filter((t) => t.block === block).map((t) => t.sort_order || 0));
+    ({ error } = await sb.from('checklist_tasks').insert({ block, label, icon, sort_order: maxSort + 1 }));
+  }
+  if (error) { alert('Fehler: ' + error.message); return; }
+
+  showToast('✓ Gespeichert');
+  fillChecklistFormNew();
+  loadChecklist();
+});
+
+document.getElementById('checklist-task-delete').addEventListener('click', async () => {
+  if (!editingChecklistTaskId) { alert('Bitte zuerst eine bestehende Aufgabe in der Liste antippen.'); return; }
+  const { error } = await sb.from('checklist_tasks').delete().eq('id', editingChecklistTaskId);
+  if (error) { alert('Fehler: ' + error.message); return; }
+  showToast('✓ Gelöscht');
+  fillChecklistFormNew();
+  loadChecklist();
+});
+
+document.getElementById('checklist-task-new').addEventListener('click', () => {
+  fillChecklistFormNew();
 });
 
 // ------------------------------------------------------------
