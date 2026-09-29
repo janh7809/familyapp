@@ -221,11 +221,19 @@ input, select, textarea, button {
 
 .field input, .field select, .field textarea {
   width: 100%;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: #fbfffe;
   color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
 }
 
 .field textarea {
@@ -720,6 +728,111 @@ input, select, textarea, button {
   flex-shrink: 0;
 }
 
+.kids-matrix-scroll {
+  overflow-x: auto;
+  margin: 4px -2px 0;
+}
+
+.kids-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.kids-matrix-table th,
+.kids-matrix-table td {
+  border: 1px solid var(--color-border);
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.kids-matrix-table thead th {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.kids-matrix-table thead th:first-child {
+  background: transparent;
+}
+
+.kids-row-label {
+  text-align: left !important;
+  background: var(--color-bg);
+  font-weight: 700;
+  white-space: nowrap;
+  padding-left: 8px !important;
+}
+
+.kids-row-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.kids-cell {
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: background 0.15s;
+  vertical-align: middle;
+  padding: 5px 3px !important;
+}
+
+.kids-cell:active {
+  background: var(--color-primary-light);
+}
+
+.kids-cell.has-entry {
+  color: var(--color-text);
+  background: #f4fdfc;
+}
+
+.kids-cell-empty {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.kids-entry {
+  padding: 3px 2px;
+  border-radius: 6px;
+  line-height: 1.25;
+}
+
+.kids-entry + .kids-entry {
+  margin-top: 3px;
+}
+
+.kids-entry:active {
+  background: var(--color-primary-light);
+}
+
+.kids-entry-time {
+  display: block;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.kids-entry-label {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.kids-entry-activity {
+  background: var(--color-accent-lavender);
+  color: var(--color-text);
+}
+
+.kids-entry-activity .kids-entry-label {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
 .history-row.is-current-period {
   background: var(--color-primary-light);
   border-radius: var(--radius-sm);
@@ -975,6 +1088,7 @@ input, select, textarea, button {
   background: var(--color-accent-yellow);
   border-radius: var(--radius-md);
   padding: 10px 14px;
+  margin-top: 10px;
   margin-bottom: 12px;
 }
 

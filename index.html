@@ -131,22 +131,26 @@
   <!-- ---------- Stundenpläne View ---------- -->
   <div class="view hidden" id="view-stundenplaene">
 
+    <p style="font-size:12px;color:var(--color-text-muted);margin:0 2px 10px">
+      Hier stehen nur die wiederkehrenden, regelmäßigen Zeiten der Kinder (Schule/Kindergarten/Tagesmutter sowie feste Aktivitäten wie Sport). Einmalige Termine gehören in den Kalender.
+    </p>
+
     <div class="card">
       <h2>Stundenpläne der Kinder</h2>
-      <div id="kids-schedule-list"></div>
-      <p style="font-size:12px;color:var(--color-text-muted);margin-top:8px">
-        Uhrzeiten fehlen teilweise noch – trag sie einfach unten ein, sobald sie feststehen.
+      <div id="kids-schedule-matrix"></div>
+      <p style="font-size:12px;color:var(--color-text-muted);margin-top:10px">
+        Auf einen Eintrag tippen, um ihn unten zu bearbeiten oder zu löschen. Auf ein freies Feld tippen, um dort einen neuen Eintrag hinzuzufügen.
       </p>
     </div>
 
     <div class="card">
-      <h2>Zeit eintragen / ändern</h2>
+      <h2>Eintrag hinzufügen / bearbeiten</h2>
       <div class="field">
         <label for="kids-child-select">Kind</label>
         <select id="kids-child-select">
-          <option value="Henry">Henry (Schule)</option>
-          <option value="George">George (Kindergarten)</option>
-          <option value="Oliver">Oliver (Tagesmutter)</option>
+          <option value="Henry">Henry</option>
+          <option value="George">George</option>
+          <option value="Oliver">Oliver</option>
         </select>
       </div>
       <div class="field">
@@ -157,7 +161,12 @@
           <option value="3">Mittwoch</option>
           <option value="4">Donnerstag</option>
           <option value="5">Freitag</option>
+          <option value="6">Samstag</option>
         </select>
+      </div>
+      <div class="field">
+        <label for="kids-label">Aktivität (z. B. Schule, Fußball, THW)</label>
+        <input type="text" id="kids-label" placeholder="z. B. Schule" />
       </div>
       <div class="btn-row">
         <div class="field" style="flex:1">
@@ -169,11 +178,11 @@
           <input type="time" id="kids-end-time" />
         </div>
       </div>
-      <div class="field">
-        <label for="kids-label">Bezeichnung (z.B. Mathe, Kindergarten)</label>
-        <input type="text" id="kids-label" />
+      <div class="btn-row">
+        <button class="btn" id="kids-schedule-submit">Speichern</button>
+        <button class="btn btn-secondary" id="kids-schedule-delete">Löschen</button>
+        <button class="btn btn-secondary" id="kids-schedule-new">Neuer Eintrag</button>
       </div>
-      <button class="btn" id="kids-schedule-submit">Speichern</button>
     </div>
   </div>
 
@@ -260,6 +269,7 @@
           <button type="button" class="year-btn" id="anna-year-next">›</button>
         </div>
       </div>
+      <button type="button" class="btn btn-secondary btn-small" id="anna-year-today" style="width:100%;margin-top:10px">Aktuelles Jahr</button>
       <div class="tip-year-block">
         <div class="tip-year-label">🪙 Trinkgeld <span id="anna-tip-year-label"></span></div>
         <div class="tip-year-amount" id="anna-tip-year-amount">–</div>

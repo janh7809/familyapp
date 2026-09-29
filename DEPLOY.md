@@ -68,7 +68,29 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.2**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.4.4**.
+
+## Update auf Version 0.4.4
+
+Keine Datenbank-Struktur-Änderung nötig (keine neue Migration), aber die Zeiten der Kinder müssen einmalig neu eingespielt werden.
+
+1. **Stundenplan-Daten einspielen:** Im Supabase-Projekt → "SQL Editor" → "New query" → kompletten Inhalt von `kids-schedule-import.sql` einfügen → "Run". **Achtung:** Das Skript löscht zuerst alle bisherigen Einträge im Stundenplan und trägt danach die aktuellen Zeiten von Henry, George und Oliver neu ein.
+2. **Alle Dateien wie gewohnt komplett neu auf GitHub hochladen.**
+
+Was neu ist:
+- Der Reiter "Stundenplan" zeigt jetzt eine Matrix (Kinder als Zeilen, Mo–Sa als Spalten) statt einer losen Liste – so ist auf einen Blick alles sichtbar.
+- Neben den festen Betreuungszeiten (Schule/Kindergarten/Tagesmutter) stehen jetzt auch die wiederkehrenden Aktivitäten der Kinder mit drin (z.B. Wingtsun, Fußball, THW, Mountainbike), farblich abgesetzt von den Betreuungszeiten.
+- Auf ein Feld in der Matrix tippen: Ist dort schon ein Eintrag, wird er unten zum Bearbeiten/Löschen ins Formular geladen. Ist das Feld leer, wird direkt ein neuer Eintrag für Kind + Tag vorbereitet.
+- Über den Button "Neuer Eintrag" lässt sich das Formular jederzeit leeren, um unabhängig von der Matrix einen neuen Termin einzutragen.
+- Einmalige Termine (z.B. ein Arzttermin) gehören weiterhin in den Kalender, nicht in den Stundenplan – dieser ist nur für wiederkehrende, wöchentliche Zeiten gedacht.
+
+## Update auf Version 0.4.3
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+- Die Datumsfelder bei Anna ("Stunden eintragen" / "Zahlung eintragen") ragten auf manchen Handys rechts über die Karte hinaus – behoben.
+- Der Trinkgeld-Block im Verlauf hatte zu wenig Abstand zur Jahres-Umschaltung darüber – jetzt mit Luft dazwischen.
+- Neuer Button "Aktuelles Jahr" im Verlauf bei Anna, um nach dem Zurückblättern direkt wieder zum laufenden Jahr zu springen.
 
 ## Update auf Version 0.4.2
 

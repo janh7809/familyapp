@@ -1110,6 +1110,12 @@ document.getElementById('anna-year-next').addEventListener('click', () => {
   renderAnnaHistory();
 });
 
+document.getElementById('anna-year-today').addEventListener('click', () => {
+  annaSelectedYear = new Date().getFullYear();
+  editingAnnaId = null;
+  renderAnnaHistory();
+});
+
 document.getElementById('anna-hours-submit').addEventListener('click', async () => {
   const work_date = document.getElementById('anna-hours-date').value;
   const hours = parseFloat(document.getElementById('anna-hours-value').value);
@@ -1391,8 +1397,13 @@ document.getElementById('kalender-week-today').addEventListener('click', () => {
 // ============================================================
 
 const WEEKDAY_NAMES = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+const WEEKDAY_SHORT = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const KIDS_ORDER = ['Henry', 'George', 'Oliver'];
+const KIDS_LABEL = { Henry: 'Schule', George: 'Kindergarten', Oliver: 'Tagesmutter' };
+const KIDS_WEEKDAYS = 6; // Mo-Sa
 
 let kidsScheduleCache = [];
+let editingKidsId = null;
 
 function initStundenplaene() {
   loadStundenplaene();
@@ -1401,39 +1412,84 @@ function initStundenplaene() {
 async function loadStundenplaene() {
   const { data } = await sb.from('kids_schedule').select('*');
   kidsScheduleCache = data || [];
-  renderKidsScheduleList();
+  renderKidsScheduleMatrix();
 }
 
-function renderKidsScheduleList() {
-  const container = document.getElementById('kids-schedule-list');
-  if (kidsScheduleCache.length === 0) {
-    container.innerHTML = '<div class="empty-hint">Noch keine Zeiten eingetragen.</div>';
-    return;
-  }
-  const byChild = {};
-  kidsScheduleCache.forEach((k) => {
-    byChild[k.child_name] = byChild[k.child_name] || [];
-    byChild[k.child_name].push(k);
+function findKidsEntries(child, weekday) {
+  return kidsScheduleCache
+    .filter((k) => k.child_name === child && k.weekday === weekday && k.start_time)
+    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+}
+
+function findKidsEntryById(id) {
+  return kidsScheduleCache.find((k) => k.id === id) || null;
+}
+
+function renderKidsScheduleMatrix() {
+  const container = document.getElementById('kids-schedule-matrix');
+
+  let html = '<div class="kids-matrix-scroll"><table class="kids-matrix-table">';
+  html += '<thead><tr><th>Kind</th>';
+  for (let d = 1; d <= KIDS_WEEKDAYS; d++) html += `<th>${WEEKDAY_SHORT[d]}</th>`;
+  html += '</tr></thead><tbody>';
+
+  KIDS_ORDER.forEach((child) => {
+    html += `<tr><th class="kids-row-label">${escapeHtml(child)}<span class="kids-row-sub">${KIDS_LABEL[child]}</span></th>`;
+    for (let d = 1; d <= KIDS_WEEKDAYS; d++) {
+      const entries = findKidsEntries(child, d);
+      let cellInner;
+      if (entries.length === 0) {
+        cellInner = '<span class="kids-cell-empty">–</span>';
+      } else {
+        cellInner = entries.map((entry) => {
+          const isMain = entry.label === KIDS_LABEL[child];
+          const timeText = `${entry.start_time.slice(0, 5)}–${(entry.end_time || '').slice(0, 5)}`;
+          return `<div class="kids-entry${isMain ? '' : ' kids-entry-activity'}" data-id="${entry.id}">
+            <span class="kids-entry-time">${timeText}</span>
+            <span class="kids-entry-label">${escapeHtml(entry.label || '')}</span>
+          </div>`;
+        }).join('');
+      }
+      html += `<td class="kids-cell${entries.length ? ' has-entry' : ''}" data-child="${escapeHtml(child)}" data-weekday="${d}">${cellInner}</td>`;
+    }
+    html += '</tr>';
   });
 
-  let html = '';
-  Object.keys(byChild).forEach((child) => {
-    const items = byChild[child].sort((a, b) => a.weekday - b.weekday);
-    html += `<p style="margin-top:10px"><strong>${escapeHtml(child)}</strong></p>`;
-    items.forEach((k) => {
-      const timeText = k.start_time ? `${k.start_time.slice(0, 5)}–${(k.end_time || '').slice(0, 5)}` : 'Zeit offen';
-      html += `<div class="history-row">
-        <div>${WEEKDAY_NAMES[k.weekday]} · ${escapeHtml(k.label)} <span class="hr-date">(${timeText})</span></div>
-        <div class="delete-x" data-id="${k.id}">✕</div>
-      </div>`;
-    });
-  });
+  html += '</tbody></table></div>';
   container.innerHTML = html;
 
-  container.querySelectorAll('.delete-x').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      await sb.from('kids_schedule').delete().eq('id', btn.dataset.id);
-      loadStundenplaene();
+  function fillFormNew(child, weekday) {
+    editingKidsId = null;
+    document.getElementById('kids-child-select').value = child;
+    document.getElementById('kids-weekday-select').value = String(weekday);
+    document.getElementById('kids-label').value = '';
+    document.getElementById('kids-start-time').value = '';
+    document.getElementById('kids-end-time').value = '';
+  }
+
+  function fillFormEdit(entry) {
+    editingKidsId = entry.id;
+    document.getElementById('kids-child-select').value = entry.child_name;
+    document.getElementById('kids-weekday-select').value = String(entry.weekday);
+    document.getElementById('kids-label').value = entry.label || '';
+    document.getElementById('kids-start-time').value = entry.start_time ? entry.start_time.slice(0, 5) : '';
+    document.getElementById('kids-end-time').value = entry.end_time ? entry.end_time.slice(0, 5) : '';
+  }
+
+  container.querySelectorAll('.kids-entry').forEach((row) => {
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const entry = findKidsEntryById(row.dataset.id);
+      if (!entry) return;
+      fillFormEdit(entry);
+      document.getElementById('kids-child-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  container.querySelectorAll('.kids-cell').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      fillFormNew(cell.dataset.child, parseInt(cell.dataset.weekday, 10));
+      document.getElementById('kids-child-select').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   });
 }
@@ -1445,18 +1501,41 @@ document.getElementById('kids-schedule-submit').addEventListener('click', async 
   const end_time = document.getElementById('kids-end-time').value || null;
   const label = document.getElementById('kids-label').value.trim();
 
-  if (!label) { alert('Bitte eine Bezeichnung eintragen.'); return; }
+  if (!label) { alert('Bitte eine Aktivität eintragen (z. B. Schule, Fußball, THW).'); return; }
+  if (!start_time || !end_time) { alert('Bitte Von- und Bis-Uhrzeit eintragen.'); return; }
 
-  const { error } = await sb.from('kids_schedule').insert({
-    child_name, weekday, start_time, end_time, label,
-  });
+  let error;
+  if (editingKidsId) {
+    ({ error } = await sb.from('kids_schedule').update({ child_name, weekday, start_time, end_time, label }).eq('id', editingKidsId));
+  } else {
+    ({ error } = await sb.from('kids_schedule').insert({ child_name, weekday, start_time, end_time, label }));
+  }
   if (error) { alert('Fehler: ' + error.message); return; }
 
+  editingKidsId = null;
+  showToast('✓ Gespeichert');
+  loadStundenplaene();
+});
+
+document.getElementById('kids-schedule-delete').addEventListener('click', async () => {
+  if (!editingKidsId) { alert('Bitte zuerst einen bestehenden Eintrag in der Übersicht antippen.'); return; }
+
+  const { error } = await sb.from('kids_schedule').delete().eq('id', editingKidsId);
+  if (error) { alert('Fehler: ' + error.message); return; }
+
+  editingKidsId = null;
   document.getElementById('kids-label').value = '';
   document.getElementById('kids-start-time').value = '';
   document.getElementById('kids-end-time').value = '';
-  showToast('✓ Gespeichert');
+  showToast('✓ Gelöscht');
   loadStundenplaene();
+});
+
+document.getElementById('kids-schedule-new').addEventListener('click', () => {
+  editingKidsId = null;
+  document.getElementById('kids-label').value = '';
+  document.getElementById('kids-start-time').value = '';
+  document.getElementById('kids-end-time').value = '';
 });
 
 // ------------------------------------------------------------
