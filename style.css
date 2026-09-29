@@ -94,6 +94,27 @@ input, select, textarea, button {
   gap: 8px;
 }
 
+/* Nur auf großen Bildschirmen sichtbar (siehe Media-Query am Dateiende) */
+.header-clock {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  line-height: 1.15;
+}
+
+.header-clock-time {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.header-clock-date {
+  font-size: 13px;
+  opacity: 0.85;
+  text-transform: capitalize;
+}
+
 .icon-btn {
   background: rgba(255,255,255,0.18);
   border: none;
@@ -1836,5 +1857,171 @@ input, select, textarea, button {
 
   .day-badges {
     justify-content: flex-start;
+  }
+}
+
+/* ============================================================
+   Großbildschirm-Optimierung (Wand-Tablet / Monitor ab ca. 21")
+   Alle Ansichten und Funktionen bleiben exakt gleich – hier wird
+   nur alles größer und lesbarer für Betrachtung aus der Ferne.
+   Handy und normale Laptop/PC-Browserfenster bleiben unverändert.
+   ============================================================ */
+
+@media (min-width: 900px) {
+  html, body {
+    font-size: 18px;
+  }
+
+  body {
+    padding-bottom: 130px;
+  }
+
+  input, select, textarea, button {
+    font-size: 18px;
+  }
+
+  .header-clock {
+    display: flex;
+  }
+
+  .app-header {
+    padding: 26px 40px;
+  }
+
+  .app-header h1 {
+    font-size: 30px;
+  }
+
+  .app-header .subtitle {
+    font-size: 16px;
+  }
+
+  .icon-btn {
+    padding: 14px 20px;
+    font-size: 18px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+
+  #refresh-btn {
+    font-size: 22px;
+  }
+
+  .view {
+    max-width: 1200px;
+    padding: 32px 40px 40px;
+  }
+
+  .card {
+    padding: 28px 32px;
+    border-radius: 26px;
+    margin-bottom: 24px;
+  }
+
+  .card h2 {
+    font-size: 22px;
+  }
+
+  .field label {
+    font-size: 16px;
+  }
+
+  .field input, .field select, .field textarea {
+    padding: 16px 18px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+
+  .btn {
+    padding: 16px 28px;
+    font-size: 19px;
+    border-radius: 14px;
+  }
+
+  .btn-small {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+
+  .bottom-nav {
+    border-radius: 26px 26px 0 0;
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  .nav-btn {
+    font-size: 16px;
+    min-height: 92px;
+    padding: 12px 4px 14px;
+    gap: 6px;
+  }
+
+  .nav-btn .nav-icon {
+    font-size: 40px;
+    padding: 8px 18px;
+  }
+
+  /* Checkliste: großzügiger und mehrspaltig, gut aus der Ferne lesbar */
+  #checklist-scene-title {
+    font-size: 26px;
+  }
+
+  .checklist-today-label {
+    font-size: 15px;
+  }
+
+  .checklist-dino-track {
+    height: 44px;
+  }
+
+  .checklist-dino {
+    font-size: 38px;
+  }
+
+  .checklist-progress {
+    font-size: 17px;
+  }
+
+  .checklist-scope-btn,
+  .checklist-period-btn {
+    padding: 12px 0;
+    font-size: 16px;
+  }
+
+  .checklist-block {
+    padding: 18px 18px 10px;
+    border-radius: 18px;
+  }
+
+  .checklist-block-title {
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+
+  .checklist-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .checklist-item {
+    padding: 18px 16px;
+    gap: 14px;
+    border-radius: 16px;
+  }
+
+  .checklist-item-icon {
+    font-size: 34px;
+  }
+
+  .checklist-item-label {
+    font-size: 17px;
+  }
+
+  .checklist-item-check {
+    width: 30px;
+    height: 30px;
+    font-size: 17px;
   }
 }

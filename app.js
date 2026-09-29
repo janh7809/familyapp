@@ -35,6 +35,7 @@ function showLogin() {
   document.getElementById('login-view').classList.remove('hidden');
   document.getElementById('app-root').classList.add('hidden');
   stopAutoRefresh();
+  clearTimeout(kioskIdleTimer);
 }
 
 async function onLoggedIn(user) {
@@ -54,6 +55,8 @@ async function onLoggedIn(user) {
   initAnna();
   subscribeRealtime();
   startAutoRefresh();
+  resetKioskIdleTimer();
+  scheduleKioskReload();
 }
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -115,16 +118,71 @@ const viewTitles = {
   admin: 'Admin',
 };
 
+function switchView(view) {
+  document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view').forEach((v) => v.classList.add('hidden'));
+  document.getElementById('view-' + view).classList.remove('hidden');
+  document.getElementById('header-title').textContent = viewTitles[view];
+}
+
 document.querySelectorAll('.nav-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset.view;
-    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.view').forEach((v) => v.classList.add('hidden'));
-    document.getElementById('view-' + view).classList.remove('hidden');
-    document.getElementById('header-title').textContent = viewTitles[view];
-  });
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
+
+// ------------------------------------------------------------
+// Großbildschirm / Wand-Display ("Kiosk-Modus")
+//
+// Wichtig: Die App funktioniert überall exakt gleich und zeigt
+// immer ALLE Ansichten (Handy, Tablet, PC-Browser) – auf breiten
+// Bildschirmen (ab ca. 900px) wird per CSS nur alles größer und
+// besser lesbar dargestellt, das passiert automatisch und ändert
+// nichts an der Funktion.
+//
+// Die beiden Verhaltens-Extras für ein dauerhaft montiertes
+// Wand-Tablet (nach 5 Min. Inaktivität zurück zur Checkliste
+// springen, alle 6 Std. neu laden) sind dagegen NICHT automatisch
+// aktiv, damit sie nicht überraschend im normalen PC-Browser oder
+// auf dem Handy zuschlagen. Sie greifen nur, wenn die App-URL mit
+// ?kiosk=1 aufgerufen wird – das trägt man einmalig als Start-URL
+// im Kiosk-Browser des Wand-Tablets ein.
+// ------------------------------------------------------------
+
+const KIOSK_IDLE_VIEW = 'checkliste';
+const KIOSK_IDLE_MS = 5 * 60 * 1000;        // 5 Minuten ohne Berührung -> zurück zur Checkliste
+const KIOSK_RELOAD_MS = 6 * 60 * 60 * 1000; // alle 6 Stunden neu laden (hält die Anzeige "frisch")
+
+function isKioskMode() {
+  return new URLSearchParams(window.location.search).get('kiosk') === '1';
+}
+
+let kioskIdleTimer = null;
+function resetKioskIdleTimer() {
+  if (!isKioskMode() || !currentUser) return;
+  clearTimeout(kioskIdleTimer);
+  kioskIdleTimer = setTimeout(() => {
+    switchView(KIOSK_IDLE_VIEW);
+  }, KIOSK_IDLE_MS);
+}
+
+['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach((evt) => {
+  document.addEventListener(evt, resetKioskIdleTimer, { passive: true });
+});
+
+function scheduleKioskReload() {
+  if (!isKioskMode()) return;
+  setTimeout(() => window.location.reload(), KIOSK_RELOAD_MS);
+}
+
+function updateHeaderClock() {
+  const timeEl = document.getElementById('header-clock-time');
+  const dateEl = document.getElementById('header-clock-date');
+  if (!timeEl || !dateEl) return;
+  const now = new Date();
+  timeEl.textContent = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  dateEl.textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' });
+}
+updateHeaderClock();
+setInterval(updateHeaderClock, 15000);
 
 // ------------------------------------------------------------
 // Realtime: bei Änderungen durch den Partner automatisch neu laden

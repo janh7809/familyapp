@@ -68,7 +68,23 @@ Falls unter "Kalender" keine Termine erscheinen:
 
 ## Versionierung
 
-Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.5.0**.
+Jede neue Version dieser App bekommt eine hochgezählte Nummer in `config.js` (`APP_VERSION`), sichtbar im Footer der App – genau wie bei der Stammtisch-App. Aktuell: **0.6.0**.
+
+## Update auf Version 0.6.0
+
+Keine Datenbank-Änderung nötig, nur Dateien neu hochladen.
+
+Optimierung für große Bildschirme (z.B. ein Wand-Tablet ab ca. 21 Zoll), ohne dass sich am Handy oder am normalen PC-Browser irgendetwas an der Funktion ändert – alle Ansichten sind überall wie gewohnt erreichbar:
+
+- **Größeres Layout:** Ab einer Bildschirmbreite von ca. 900px (Tablet quer, großer Monitor, breites Browserfenster) wird die App automatisch größer und lesbarer dargestellt – größere Schrift, größere Buttons/Touch-Flächen, breiteres Layout, die Checkliste zeigt ihre Aufgaben nebeneinander statt untereinander. Das passiert rein über das Design (CSS) und greift überall dort, wo der Bildschirm breit genug ist – auch im normalen PC-Browser.
+- **Große Uhr im Kopfbereich:** Auf breiten Bildschirmen erscheint oben in der Mitte eine große Uhrzeit- und Datumsanzeige (nur dort sichtbar, auf dem Handy bleibt der Kopfbereich wie gewohnt schlank).
+- **Kiosk-Modus für ein festes Wand-Tablet:** Ruft man die App mit dem Zusatz `?kiosk=1` an der Adresse auf (z.B. `https://DEINE-VERCEL-URL/?kiosk=1`), sind zwei Extras aktiv:
+  - Nach 5 Minuten ohne Berührung springt die Anzeige automatisch zurück zur Checkliste (die "Ruhezustand"-Ansicht für die Kinder).
+  - Die Seite lädt sich alle 6 Stunden automatisch einmal neu, damit die Anzeige auch im Dauerbetrieb zuverlässig bleibt.
+
+  Diese beiden Extras sind bewusst **nicht** automatisch aktiv, auch nicht auf breiten Bildschirmen – sie würden im normalen PC-Browser oder falls du die App mal auf einem größeren Tablet in der Hand benutzt nur stören. Für das fest montierte Wand-Tablet trägst du im Kiosk-Browser (siehe Tipp unten) einmalig `?kiosk=1` an die Start-URL an, danach läuft das automatisch.
+
+**Tipp fürs Wand-Tablet:** Ein normales Android-Tablet (oder ein größeres Android-"Touch-Panel" ab 21 Zoll) mit Wandhalterung, dauerhaft am Strom, plus der kostenlosen/günstigen App **Fully Kiosk Browser**: Start-URL auf `https://DEINE-VERCEL-URL/?kiosk=1` setzen, Kiosk-Modus und "Bildschirm nie ausschalten" aktivieren – fertig.
 
 ## Update auf Version 0.5.0
 
